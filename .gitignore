@@ -3,3 +3,4 @@ all_dyad_diffs.rds
 .Rproj.user
 *.dta
 *.DTA
+*.rds
