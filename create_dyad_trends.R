@@ -72,6 +72,30 @@ all_dyad_diffs_mc <- parallel::mclapply(dyad_as_list, diff_trends,
 saveRDS(all_dyad_diffs_mc, "all_dyad_diffs.rds")
 
 
+### rerun above function for sleep
+# create difference vectors for all combinations
+diff_trends_sleep <- function(dyad_list){
+  filtered <- fitbit_data %>% 
+    filter(participid ==  dyad_list[,1] | participid == dyad_list[,2]) %>% 
+    group_by(datadate) %>% 
+    filter(n_distinct(participid) == 2) %>% 
+    summarise(diff = max(sleepmins) - min(sleepmins)) %>% 
+    mutate(node1 =  dyad_list[,1],
+           node2 = dyad_list[,2]) %>% 
+    ungroup()
+  return(filtered)
+}
+
+# make list
+dyad_as_list <- split(dyad_list, seq(nrow(dyad_list)))
+
+# apply using parallelization 
+dyad_sleep_diffs <- parallel::mclapply(dyad_as_list, diff_trends_sleep, 
+                                        mc.cores = getOption("mc.cores", 10L))
+# empty if dates don't overlap; NA if one had no values for day
+
+# save object
+saveRDS(dyad_sleep_diffs, "dyad_sleep_diffs.rds")
 
 
 
