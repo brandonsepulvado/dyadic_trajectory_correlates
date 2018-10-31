@@ -63,16 +63,19 @@ dyad_as_list <- split(dyad_list, seq(nrow(dyad_list)))
 #all_dyad_diffs <- lapply(dyad_as_list[1:10], diff_trends)
 
 # apply using parallelization 
-all_dyad_diffs_mc <- parallel::mclapply(dyad_as_list, diff_trends, 
+dyad_steps_diffs <- parallel::mclapply(dyad_as_list, diff_trends, 
                                         mc.cores = getOption("mc.cores", 10L))
   # empty if dates don't overlap; NA if one had no values for day
 
 
 # save object
-saveRDS(all_dyad_diffs_mc, "all_dyad_diffs.rds")
+saveRDS(dyad_steps_diffs, "dyad_steps_diffs.rds")
+
+
 
 
 ### rerun above function for sleep
+
 # create difference vectors for all combinations
 diff_trends_sleep <- function(dyad_list){
   filtered <- fitbit_data %>% 
