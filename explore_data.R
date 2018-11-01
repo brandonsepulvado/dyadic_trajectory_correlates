@@ -50,7 +50,7 @@ hist(missing_sleep_prop)
 steps_miss_prop_t <- as_tibble(missing_steps_prop) %>% 
   rename(proportion = value) %>% 
   mutate(activity = "steps")
-sleep_miss_prop_t <- as_tibble(missing_steps_prop) %>% 
+sleep_miss_prop_t <- as_tibble(missing_sleep_prop) %>% 
   rename(proportion = value) %>% 
   mutate(activity = "sleep")
 missing_prop_combined <- bind_rows(steps_miss_prop_t,
@@ -58,7 +58,12 @@ missing_prop_combined <- bind_rows(steps_miss_prop_t,
 
 # get mean for missing proportion types for histograms below
 mean_steps <- mean(steps_miss_prop_t$proportion, na.rm = TRUE)
-mean_sleep <- mean(steps_miss_prop_t$proportion, na.rm = TRUE)
+mean_sleep <- mean(sleep_miss_prop_t$proportion, na.rm = TRUE)
+
+# get median for missing proportion types 
+# get mean for missing proportion types for histograms below
+median_steps <- median(steps_miss_prop_t$proportion, na.rm = TRUE)
+median_sleep <- median(sleep_miss_prop_t$proportion, na.rm = TRUE)
 
 # plot histogram faceted
 missing_prop_combined %>% 
@@ -72,6 +77,29 @@ missing_prop_combined %>%
   geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
              aes(xintercept=mean_steps), linetype = "dashed", colour="black") +
   geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
-             aes(xintercept=mean_sleep), linetype = "dashed", colour="black")
+             aes(xintercept=mean_sleep), linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
+             aes(xintercept=median_steps), linetype = "solid", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=median_sleep), linetype = "solid", colour="black")
   
+# number of cases at diff missing values thresholds
+get_missing_cases <- function(data, focal_var, focal_value, missing_var, missing_value){
+  focal_var <- enquo(focal_var)
+  missing_var <- enquo(missing_var)
   
+   below_prop <- data %>% 
+    filter(!! focal_var == focal_value) %>% 
+    filter(!! missing_var < missing_value) %>% 
+    nrow()
+  
+  return(below_prop)
+}
+
+# get these number for various thresholds
+thresholds <- tibble::tibble(threshold = c(.25, .36, .41, .50))
+num_cases <- sapply(thresholds$threshold, function(x){
+  get_missing_cases(missing_prop_combined, activity, "steps", proportion, x)
+})
+bind_cols(thresholds, as_tibble(num_cases)) %>% 
+  rename(n_cases = value)
