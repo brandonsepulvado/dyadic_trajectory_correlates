@@ -6,27 +6,30 @@
 
 ### steps
 
-# rename
-dyad_steps_diffs <- all_dyad_diffs_mc
+# next bit that is commented out is unnecessary after 
+# the initial creation of data objects
 
-# remove old object now unnecessary
-# rm(all_dyad_diffs_mc)
-
-### create dyad id
-# create function
-create_dyad_id <- function(data){
-  data <- data %>% 
-    unite(dyad_id, node1, node2, sep = "", remove = FALSE)
-  return(data)
-}
-
-# apply
-dyad_steps_diffs <- lapply(dyad_steps_diffs, create_dyad_id)
-dyad_sleep_diffs <- lapply(dyad_sleep_diffs, create_dyad_id)
-
-# save these 
-saveRDS(dyad_steps_diffs, "dyad_steps_diffs.rds")
-saveRDS(dyad_sleep_diffs, "dyad_sleep_diffs.rds")
+# # rename NO LONGER NEEDED
+# #dyad_steps_diffs <- all_dyad_diffs_mc
+# 
+# # remove old object now unnecessary
+# # rm(all_dyad_diffs_mc)
+# 
+# ### create dyad id
+# # create function
+# create_dyad_id <- function(data){
+#   data <- data %>% 
+#     unite(dyad_id, node1, node2, sep = "", remove = FALSE)
+#   return(data)
+# }
+# 
+# # apply
+# dyad_steps_diffs <- lapply(dyad_steps_diffs, create_dyad_id)
+# dyad_sleep_diffs <- lapply(dyad_sleep_diffs, create_dyad_id)
+# 
+# # save these 
+# saveRDS(dyad_steps_diffs, "dyad_steps_diffs.rds")
+# saveRDS(dyad_sleep_diffs, "dyad_sleep_diffs.rds")
 
 
 # count how many were in study at same time
