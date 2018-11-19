@@ -1,0 +1,379 @@
+---
+title: "Preparing Sleep and Steps Data for Analysis"
+author: "Brandon Sepulvado"
+date: "11/14/2018"
+output: word_document
+---
+
+# Getting the data in order
+
+This file serves as a brief report on the sleep and steps trends for each dyad in the study. Data preparation will not be covered in this report; if you would like to examine the code, it may be found in the data_import_clean.R, create_dyad_trends.R, and explore_data.R files as well as in my private netheath Gihub repo (which does not however contain any of the data).
+
+# Exploring the data
+
+```{r import_data, include=FALSE}
+library(ggplot2)
+library(dplyr)
+
+# load sleep data
+dyad_sleep_diffs <- readRDS("dyad_sleep_diffs.rds")
+
+# load steps data
+dyad_steps_diffs <- readRDS("dyad_steps_diffs.rds")
+```
+
+I first load two data objects: `dyad_sleep_diffs` and `dyad_steps_diffs`. The code chunk below shows that both objects are lists with 390,000 elements, which in this ase are dyads (*not edges*).
+
+```{r inspect_data_structure}
+# verify object classes
+class(dyad_sleep_diffs)
+class(dyad_steps_diffs)
+
+# number of elements in each
+length(dyad_sleep_diffs)
+length(dyad_steps_diffs)
+```
+
+As I show below, each list element is a tibble/data frame with four variables (i.e., `datadate`, `diff`, `dyad_id`, `node1`, and `node2`). The `diff` is the difference between the activity of interest, and the `dyad_id` is simply the two node ids concatenated.
+```{r example}
+head(dyad_sleep_diffs[[1]], 10)
+```
+
+
+
+# Missing data
+
+Missing data can occur within each list element in two manners. First, the two individuals for a given dyad might not have been in the study on the same dates. Second, at least one of the two individuals might have no data for a given date. A list element will have no rows if the first possibility occurs, but, if the two individuals overlapped yet at least one has missing dat, the `diff` value for a given date will be NA. 
+
+The next bit of code shows how many participants overlapped.
+```{r overlapping_cases}
+# count how many were in study at same time
+same_time_steps <- sum(sapply(dyad_steps_diffs, 
+                              function(x) nrow(x) > 0))
+# should be the same
+same_time_sleep <- sum(sapply(dyad_sleep_diffs, 
+                              function(x) nrow(x) > 0))
+same_time_sleep
+same_time_steps
+```
+There are 354,116 dyads that participated in NetHealth at the same time. 
+Now, for participants whose tenure overlapped, let's look at how many have missing data and what proportion of their tenure that consistutes. 
+
+```{r missing_data, echo=FALSE, message=FALSE, warning=FALSE}
+# how many dyads have missing data, meaning both in study at same time
+# but one person (at least) has NA for day on given measure
+missing_steps_days <- sapply(dyad_steps_diffs, function(x) sum(is.na(x['diff'])))
+missing_sleep_days <- sapply(dyad_sleep_diffs, function(x) sum(is.na(x['diff'])))
+
+# get proportion of dyad's common dates with missing data
+missing_steps_prop <- sapply(dyad_steps_diffs, function(x) sum(is.na(x['diff'])) / nrow(x))
+missing_sleep_prop <- sapply(dyad_sleep_diffs, function(x) sum(is.na(x['diff'])) / nrow(x))
+
+# make tibble to be able to facet histogram
+steps_miss_prop_t <- as_tibble(missing_steps_prop) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "steps")
+sleep_miss_prop_t <- as_tibble(missing_sleep_prop) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "sleep")
+missing_prop_combined <- bind_rows(steps_miss_prop_t,
+                                   sleep_miss_prop_t)
+
+# get mean for missing proportion types for histograms below
+mean_steps <- mean(steps_miss_prop_t$proportion, na.rm = TRUE)
+mean_sleep <- mean(sleep_miss_prop_t$proportion, na.rm = TRUE)
+
+# get median for missing proportion types 
+# get mean for missing proportion types for histograms below
+median_steps <- median(steps_miss_prop_t$proportion, na.rm = TRUE)
+median_sleep <- median(sleep_miss_prop_t$proportion, na.rm = TRUE)
+
+# plot histogram faceted
+missing_prop_combined %>% 
+  ggplot(aes(x = proportion, fill = as.factor(activity))) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(~as.factor(activity)) +
+  labs(title = "Proportion of day data missing for each dyad",
+       x = "Proportion",
+       y = "Count") +
+  scale_fill_discrete(name = "Type of activity") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
+             aes(xintercept=mean_steps), linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=mean_sleep), linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
+             aes(xintercept=median_steps), linetype = "solid", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=median_sleep), linetype = "solid", colour="black")
+```
+
+In these plots, the solid line represents the median proportion, and the dashed line represents the mean proportion. I now will plot the distribution of the raw number of days for which each dyad has data.
+
+```{r num_nonmiss_days}
+# get number of non_missing days for dyads
+nonmissing_steps_days <- sapply(dyad_steps_diffs, 
+                                function(x) sum(!is.na(x['diff'])))
+nonmissing_sleep_days <- sapply(dyad_sleep_diffs, 
+                                function(x) sum(!is.na(x['diff'])))
+
+# make tibble to be able to facet histogram
+steps_nonmiss_t <- as_tibble(nonmissing_steps_days) %>% 
+  rename(n_days = value) %>% 
+  mutate(activity = "steps")
+sleep_nonmiss_t <- as_tibble(nonmissing_sleep_days) %>% 
+  rename(n_days = value) %>% 
+  mutate(activity = "sleep")
+nonmissing_combined <- bind_rows(steps_nonmiss_t,
+                                   sleep_nonmiss_t)
+
+# get mean for missing proportion types for histograms below
+mean_steps <- mean(steps_nonmiss_t$n_days, na.rm = TRUE)
+mean_sleep <- mean(sleep_nonmiss_t$n_days, na.rm = TRUE)
+
+# get median for missing proportion types 
+# get mean for missing proportion types for histograms below
+median_steps <- median(steps_nonmiss_t$n_days, na.rm = TRUE)
+median_sleep <- median(sleep_nonmiss_t$n_days, na.rm = TRUE)
+
+# plot histogram faceted
+nonmissing_combined %>% 
+  ggplot(aes(x = n_days, fill = as.factor(activity))) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(~as.factor(activity)) +
+  labs(title = "Distribution of non-missing days per dyad",
+       x = "Number of Days",
+       y = "Count") +
+  scale_fill_discrete(name = "Type of activity") +
+  geom_vline(data=filter(nonmissing_combined, as.factor(activity)=="steps"),
+             aes(xintercept=mean_steps), linetype = "dashed", colour="black") +
+  geom_vline(data=filter(nonmissing_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=mean_sleep), linetype = "dashed", colour="black") +
+  geom_vline(data=filter(nonmissing_combined, as.factor(activity)=="steps"),
+             aes(xintercept=median_steps), linetype = "solid", colour="black") +
+  geom_vline(data=filter(nonmissing_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=median_sleep), linetype = "solid", colour="black")
+
+```
+
+
+But, how *much* missing data for each dyad is there?
+
+```{r}
+# number of cases at diff missing values thresholds
+get_missing_cases <- function(data, focal_var, focal_value, missing_var, missing_prop){
+  focal_var <- enquo(focal_var)
+  missing_var <- enquo(missing_var)
+  
+   below_prop <- data %>% 
+    filter(!! focal_var == focal_value) %>% 
+    filter(!! missing_var < missing_prop) %>% 
+    nrow()
+  
+  return(below_prop)
+}
+
+# get these number for various thresholds
+thresholds <- tibble::tibble(threshold = seq(from = .01, 
+                                             to = 1.0, 
+                                             by = .01))
+
+# apply to steps
+num_cases_steps <- sapply(thresholds$threshold, function(x){
+  get_missing_cases(missing_prop_combined, activity, "steps", proportion, x)
+})
+
+# apply to sleep
+num_cases_sleep <- sapply(thresholds$threshold, function(x){
+  get_missing_cases(missing_prop_combined, activity, "sleep", proportion, x)
+})
+
+# join together
+num_cases_steps <- bind_cols(thresholds, as_tibble(num_cases_steps)) %>% 
+  rename(n_cases = value) %>% 
+  mutate(activity = "steps")
+num_cases_sleep <- bind_cols(thresholds, as_tibble(num_cases_sleep)) %>% 
+  rename(n_cases = value) %>% 
+  mutate(activity = "sleep")
+
+# merge together
+num_cases <- bind_rows(num_cases_steps, num_cases_sleep)
+
+# plot 
+num_cases %>% 
+  ggplot(aes(x = threshold, y = n_cases), color = activity) +
+  geom_line(aes(linetype = activity)) + 
+  ggtitle("Number of Cases Below Missing Data Thresholds") +
+  xlab("Missing Data Threshold") +
+  ylab("Number of Cases Below Threshold") +
+  theme_minimal()
+
+# get proportion
+num_cases %>% 
+  mutate(proportion = n_cases / 354116) %>%  # n cases in study at same time
+  ggplot(aes(x = threshold, y = proportion), color = activity) +
+  geom_line(aes(linetype = activity)) +
+  ggtitle("Proportion of cases below missing data thresholds ") +
+  xlab("Proportion of Dyad Observations with Missing Activity Data") +
+  ylab("Proportion of Cases Below Threshold") +
+  theme_minimal()
+```
+
+To be able to reliably impute or interpolate data, it is necessary to examine the length of the gaps between observed day observations for each dyad. For instance, it is easy to interpolate a single day between two observed days, but it is much less obvious what to do if an entire week of observations are missing for a given dyad. The following code does two things. First, I write a function to generate a vector of intervals between each non-missing observation on the specific activity variable; note that this vevtor will have a length of n - 1, where n is the number of observed data points, and that the interval of time between two points is returned in days. Second, it applies the function to the `dyad_sleep_diffs` and `dyad_steps_diffs` lists. 
+
+```{r differences_in_dates_non-missing, eval=FALSE, include=FALSE}
+get_date_differences <- function(data, date_var, activity_var, format = "day"){
+  date_var <- enquo(date_var)
+  activity_var <- enquo(activity_var)
+  
+  temp <- data %>% 
+    dplyr::filter(!is.na(!! activity_var))
+  
+  diffs <- temp[!! date_var] %>% 
+    lubridate::int_diff() %>% 
+    lubridate::as.duration() %>%
+    as.numeric()
+    
+  
+  if(format == "day") {
+    return(diffs / 86400)
+  } else if (format == "seconds") {
+    return(diffs)
+  } else {
+    stop("You have chosen an unsupported date format!")
+  }
+  
+  
+}
+```
+
+```{r}
+# function to get interval vector
+get_date_differences <- function(data, format = "day"){
+  #date_var <- enquo(date_var)
+  
+  temp <- data %>% 
+    filter(!is.na(diff)) %>% 
+    select(datadate)
+  
+  temp <- ymd(temp$datadate)
+  
+  diffs <- temp %>% 
+    int_diff() %>% 
+    as.duration() %>%
+    as.numeric()
+  
+  if(format == "day") {
+    return(diffs / 86400)
+  } else if (format == "seconds") {
+    return(diffs)
+  } else {
+    stop("You have chosen an unsupported date format!")
+  }
+}
+
+# apply function to sleep data
+date_diffs_sleep <- lapply(dyad_sleep_diffs, get_date_differences)
+#date_diffs_sleep <- parallel::mclapply(dyad_sleep_diffs, 
+                                       #get_date_differences,
+                                       #mc.cores = getOption("mc.cores", 4L))
+
+# only run once
+#saveRDS(date_diffs_sleep, "date_diffs_sleep.rds")
+
+# apply function to steps data
+date_diffs_steps <- lapply(dyad_steps_diffs, get_date_differences)
+
+# only run once
+#saveRDS(date_diffs_steps, "date_diffs_steps.rds")
+
+# collapse all *sleep* list elements into a single object
+
+# first make tibble
+date_diffs_sleep <- lapply(date_diffs_sleep, function(x){
+  x %>% 
+  as_tibble() %>% 
+  rename(interval = value)
+})
+
+# next, merge all elements into a single object
+date_diffs_sleep_t <- bind_rows(date_diffs_sleep)
+
+# collapse all *step* list elements into a single object
+
+# first make tibble
+date_diffs_steps <- lapply(date_diffs_steps, function(x){
+  x %>% 
+  as_tibble() %>% 
+  rename(interval = value)
+})
+
+# next, merge all elements into a single object
+date_diffs_steps_t <- bind_rows(date_diffs_steps)
+  
+# histogram of sleep intervals
+date_diffs_sleep_t %>% 
+  ggplot(aes(x = interval)) +
+  geom_histogram(show.legend = FALSE) +
+  labs(main = "Distribution of interval between every dyad observation",
+       subtitle= "Only observations with no missing data",
+       x = "Interval Length",
+       y = "Number of Occurences")
+
+# how many total intervals? use to get proportion 
+# dim(date_diffs_sleep_t)
+  # 100076296, 1
+
+# look at density, no longer visualizing 1 (but keeping in proportions)
+date_diffs_sleep_t %>% 
+  ggplot(aes(x = interval)) +
+  geom_density(show.legend = FALSE) +
+  #coord_cartesian(xlim=c(2, max(date_diffs_sleep_t$interval))) +
+  #coord_cartesian(xlim=c(2, 200)) +
+  coord_cartesian(xlim=c(1, 10)) +
+  labs(title = "Distribution of interval between every dyad observation",
+       subtitle= "Note: only observations with no missing data",
+       x = "Interval Length",
+       y = "Number of Occurences")
+
+# get proportion of cases with intervals greater than 4
+date_diffs_sleep_t %>% 
+  filter(interval < 5) %>% 
+  summarise(n_filtered = n(),
+            prop_filtered = n_filtered / 100076296)
+
+
+
+
+```
+
+
+
+
+Ideally, we will run this again after making a choice about the proportion of missing data threshold to verify that no systematic relationship between number of observations for a dyad and the length of time between observations occurs. 
+
+
+
+
+
+
+
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+dyad_sleep_diffs_df <- bind_rows(dyad_sleep_diffs)
+dyad_steps_diffs_df <- bind_rows(dyad_steps_diffs)
+
+dyad_sleep_diffs_df %>% 
+  ggplot(aes(x = datadate, 
+             y = diff, 
+             color = as.factor(dyad_id), 
+             group = as.factor(dyad_id))) +
+  geom_line(alpha = 0.1)
+
+
+
+```
+
