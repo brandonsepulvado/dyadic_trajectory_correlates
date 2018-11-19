@@ -33,8 +33,9 @@
 
 
 # count how many were in study at same time
-same_time_ <- sum(sapply(dyad_steps_diffs, function(x) nrow(x) > 0))
+same_time_steps <- sum(sapply(dyad_steps_diffs, function(x) nrow(x) > 0))
   # 354116
+same_time_sleep <- sum(sapply(dyad_sleep_diffs, function(x) nrow(x) > 0))
 
 # how many dyads have missing data, meaning both in study at same time
 # but one person (at least) has NA for day on given measure
