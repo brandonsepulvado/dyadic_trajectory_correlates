@@ -384,41 +384,39 @@ dyad_sleep_diffs_t %>%
                  limits = c(as.Date(min(dyad_sleep_diffs_t$datadate)),
                             as.Date(max(dyad_sleep_diffs_t$datadate)))) +
     labs(title = "Number of Missing Observations Throughout Study",
+         subtitle = "Activity: Sleep",
          x = "Date",
          y = "Number of Missing Observations") +
   theme_minimal()
+```
+This line graph plots the number of missing dyadic observations for each day of the study (through September 2018). To reiterate, missing data in this context means that (1) two individuals overlapped in the dates of their study participation but (2) at least one of them has no recorded activity data for a given activity indicator. The x-axis is the date and has vertical lines for every month; the y-axis is simply the raw count of missing observations for a given study day.
 
+There seem to be three distinct periods. In the first, which consists of the inital academic year, the number of missing observation increases fairly linearly with occasional spikes. In the second, which consists of around the end of August 2016 to the end of August 2017, there is a markedly different trend. One observes a rough linear increase---again with spikes---until the beginning of the Spring 2017 semester, when there is a desrease in the number of missing observations. One also observes during Summer 2017 a drastic increase in the number of missing observations. Finally, in the remaining period, there is a dramatic decrease in missing observations at the beginning of Fall 2017 and Spring 2018. There is a spike in missing data during the winter holidays between the two semesters. After the end of Spring 2017, one sees a decrease in missing observations. 
 
-
-# dyad_sleep_diffs_t %>% 
-#   filter(is.na(diff)) %>% 
-#   count(datadate) %>% 
-#   mutate(datadate = ymd(datadate)) %>% 
-#   ggplot(aes(x = datadate, y = n)) +
-#     geom_line(show.legend = FALSE) +
-#     #scale_x_date(limits = c(min(dyad_sleep_diffs_t$datadate),
-#     #                        max(dyad_sleep_diffs_t$datadate))) +
-#     scale_x_date(date_labels = "%b %Y",
-#                  date_breaks = "6 months",
-#                  date_minor_breaks = "1 month",
-#                  limits = c(as.Date("2015-06-01"),
-#                             as.Date("2018-12-01"))) +
-#     labs(title = "Number of Missing Observations Throughout Study",
-#          x = "Date",
-#          y = "Number of Missing Observations") +
-#   theme_minimal()
-
-
-
+Before interpreting these trends, I will create the same visualization for the steps activity variable. The results should be virtually identical.
+```{r}
 dyad_steps_diffs_t %>% 
   filter(is.na(diff)) %>% 
   count(datadate) %>% 
   mutate(datadate = ymd(datadate)) %>% 
   ggplot(aes(x = datadate, y = n)) +
     geom_line(show.legend = FALSE) +
-    labs(title = "Number of Missing Observations Throughout Study")
+    scale_x_date(date_labels = "%b %Y",
+                     date_breaks = "6 months",
+                     date_minor_breaks = "1 month",
+                     limits = c(as.Date(min(dyad_sleep_diffs_t$datadate)),
+                                as.Date(max(dyad_sleep_diffs_t$datadate)))) +
+    labs(title = "Number of Missing Observations Throughout Study",
+             subtitle = "Activity: Steps",
+             x = "Date",
+             y = "Number of Missing Observations") +
+    theme_minimal()
 ```
+As expected, the trends resemble each other.
 
+Why are these trends in missing data observed? The steady increase during the first academic year suggests a growing inattention to wearing one's fitbit. The second period seems to be characterized by a cohort who maintain a somewhat steady level of fitbit adherence. One observes in the final academic year much less variation in the number of missing observations.
+
+What does this mean for analyses? The first factor to check will be the number of participants within the study at any given time. Comparing this trend to the number of study participants might reveal the underlying causes of variation in the raw number of missing observations and stability versus volatility in the trend. These results might impact the ability to impute reliably missing data because the length of time between two observations might systematically relate to the date and because---given these seeming periodizations---one might expect different types of participants at distinct periods. These latent groups might exhibit different missing data patterns tied to their more or less (empirically ascertainable) behaviors that would enable us to specify potentially useful seasonality relationships in missing data imputation. 
 
 
 
