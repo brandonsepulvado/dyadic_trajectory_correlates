@@ -14,6 +14,7 @@ This file serves as a brief report on the sleep and steps trends for each dyad i
 ```{r import_data, include=FALSE}
 library(ggplot2)
 library(dplyr)
+library(lubridate)
 
 # load sleep data
 dyad_sleep_diffs <- readRDS("dyad_sleep_diffs.rds")
@@ -271,8 +272,10 @@ get_date_differences <- function(data, format = "day"){
   }
 }
 
+###
+# this bit of code only needs to be run once
 # apply function to sleep data
-date_diffs_sleep <- lapply(dyad_sleep_diffs, get_date_differences)
+#date_diffs_sleep <- lapply(dyad_sleep_diffs, get_date_differences)
 #date_diffs_sleep <- parallel::mclapply(dyad_sleep_diffs, 
                                        #get_date_differences,
                                        #mc.cores = getOption("mc.cores", 4L))
@@ -281,12 +284,17 @@ date_diffs_sleep <- lapply(dyad_sleep_diffs, get_date_differences)
 #saveRDS(date_diffs_sleep, "date_diffs_sleep.rds")
 
 # apply function to steps data
-date_diffs_steps <- lapply(dyad_steps_diffs, get_date_differences)
+#date_diffs_steps <- lapply(dyad_steps_diffs, get_date_differences)
 
 # only run once
 #saveRDS(date_diffs_steps, "date_diffs_steps.rds")
 
 # collapse all *sleep* list elements into a single object
+###
+
+# load data objects created in commented out section
+date_diffs_sleep <- readRDS("date_diffs_sleep.rds")
+date_diffs_steps <- readRDS("date_diffs_steps.rds")
 
 # first make tibble
 date_diffs_sleep <- lapply(date_diffs_sleep, function(x){
@@ -335,45 +343,88 @@ date_diffs_sleep_t %>%
        x = "Interval Length",
        y = "Number of Occurences")
 
-# get proportion of cases with intervals greater than 4
-date_diffs_sleep_t %>% 
-  filter(interval < 5) %>% 
-  summarise(n_filtered = n(),
-            prop_filtered = n_filtered / 100076296)
+# get proportion of cases with intervals from 2-4
+prop_intervals <- sapply(seq(from = 2, to = 5, by = 1),
+                         function(x){
+                           date_diffs_sleep_t %>% 
+                            filter(interval < x) %>% 
+                            summarise(n_filtered = n(),
+                                      prop_filtered = n_filtered / 100076296,
+                                      days_interval = x-1)
+                         })
+
+# print 
+prop_intervals
+```
+The visualizations indicate that the overwhelming majority of observations do not have large intervals (in terms of days) between their observations. The `prop_intervals` object displays the number of cases kept, proportion of such cases, and the thresholds for each set of numbers. If we restrict the data to observations on consecutive days, then we will lose almost 6% of observations; if we increase the cutoff to four days with no data, we will lose almost 2% of cases. *These numbers of course do not indicate the number of dyads we will lose if we exclude them based upon whether or not they contain such periods of missing observations. Ideally, we will run this again after making a choice about the proportion of missing data threshold to verify that no systematic relationship between number of observations for a dyad and the length of time between observations occurs.* 
 
 
 
+## Periodization of Missing Observations
+In this section, I want to explore if there are temporal trends in the missing data. I first will collapse the `dyad_steps_diffs` and `dyad_sleep_diffs` lists  into two data frames.
 
+```{r missing_time_series}
+dyad_sleep_diffs_t <- bind_rows(dyad_sleep_diffs)
+dyad_steps_diffs_t <- bind_rows(dyad_sleep_diffs)
+```
+
+Next, I will count the number of missing observations for each date and plot the resutls.
+```{r}
+dyad_sleep_diffs_t %>% 
+  filter(is.na(diff)) %>% 
+  count(datadate) %>% 
+  mutate(datadate = ymd(datadate)) %>% 
+  ggplot(aes(x = datadate, y = n)) +
+    geom_line(show.legend = FALSE) +
+    #scale_x_date(limits = c(min(dyad_sleep_diffs_t$datadate),
+    #                        max(dyad_sleep_diffs_t$datadate))) +
+    scale_x_date(date_labels = "%b %Y",
+                 date_breaks = "6 months",
+                 date_minor_breaks = "1 month",
+                 limits = c(as.Date(min(dyad_sleep_diffs_t$datadate)),
+                            as.Date(max(dyad_sleep_diffs_t$datadate)))) +
+    labs(title = "Number of Missing Observations Throughout Study",
+         x = "Date",
+         y = "Number of Missing Observations") +
+  theme_minimal()
+
+
+
+# dyad_sleep_diffs_t %>% 
+#   filter(is.na(diff)) %>% 
+#   count(datadate) %>% 
+#   mutate(datadate = ymd(datadate)) %>% 
+#   ggplot(aes(x = datadate, y = n)) +
+#     geom_line(show.legend = FALSE) +
+#     #scale_x_date(limits = c(min(dyad_sleep_diffs_t$datadate),
+#     #                        max(dyad_sleep_diffs_t$datadate))) +
+#     scale_x_date(date_labels = "%b %Y",
+#                  date_breaks = "6 months",
+#                  date_minor_breaks = "1 month",
+#                  limits = c(as.Date("2015-06-01"),
+#                             as.Date("2018-12-01"))) +
+#     labs(title = "Number of Missing Observations Throughout Study",
+#          x = "Date",
+#          y = "Number of Missing Observations") +
+#   theme_minimal()
+
+
+
+dyad_steps_diffs_t %>% 
+  filter(is.na(diff)) %>% 
+  count(datadate) %>% 
+  mutate(datadate = ymd(datadate)) %>% 
+  ggplot(aes(x = datadate, y = n)) +
+    geom_line(show.legend = FALSE) +
+    labs(title = "Number of Missing Observations Throughout Study")
 ```
 
 
 
 
-Ideally, we will run this again after making a choice about the proportion of missing data threshold to verify that no systematic relationship between number of observations for a dyad and the length of time between observations occurs. 
 
 
 
 
 
-
-
-
-
-
-
-
-```{r eval=FALSE, include=FALSE}
-dyad_sleep_diffs_df <- bind_rows(dyad_sleep_diffs)
-dyad_steps_diffs_df <- bind_rows(dyad_steps_diffs)
-
-dyad_sleep_diffs_df %>% 
-  ggplot(aes(x = datadate, 
-             y = diff, 
-             color = as.factor(dyad_id), 
-             group = as.factor(dyad_id))) +
-  geom_line(alpha = 0.1)
-
-
-
-```
 
