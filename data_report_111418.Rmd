@@ -423,6 +423,21 @@ What does this mean for analyses? The first factor to check will be the number o
 
 
 
+```{r}
+dyad_sleep_diffs_t %>% 
+  filter(is.na(diff)) %>% 
+  count(datadate) %>% 
+  mutate(datadate = ymd(datadate)) %>% 
+  ggplot_calendar_heatmap('datadate', 
+                          'n') +
+  xlab(NULL) +
+   ylab(NULL) +
+   scale_fill_continuous(low = 'green', high = 'red') +
+   facet_wrap(~Year, ncol = 1)
+
+```
+
+
 
 
 
