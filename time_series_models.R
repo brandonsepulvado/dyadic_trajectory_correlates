@@ -2,6 +2,11 @@
 ##### run time series models
 #####
 
+library(dplyr)
+library(plyr)
+library(lubridate)
+library(forecast)
+
 ###
 # load data if needed (uncomment)
 #yad_sleep_diffs <- readRDS("dyad_sleep_diffs.rds")
@@ -12,61 +17,86 @@
 
 ### prepare data
 
-# remove list element if it has discontinuous dates
+# data preparation conducted on ND servers due to space
+# see the following files:
+# sleep_steps_missing.sh
+# sleep_steps_missing_input.R
+# steps_filtered.rds
+# sleep_filtered.rds
 
-# function to get interval vector of date differences
-get_date_differences <- function(data, format = "day"){
-  #date_var <- enquo(date_var)
-  
-  temp <- data %>% 
-    filter(!is.na(diff)) %>% 
-    select(datadate)
-  
-  temp <- ymd(temp$datadate)
-  
-  diffs <- temp %>% 
-    int_diff() %>% 
-    as.duration() %>%
-    as.numeric()
-  
-  if(format == "day") {
-    return(diffs / 86400)
-  } else if (format == "seconds") {
-    return(diffs)
-  } else {
-    stop("You have chosen an unsupported date format!")
-  }
-}
+# import resulting objects (if more than 24 hour gap, df becomes NULL)
+sleep_filtered <- readRDS("/afs/crc.nd.edu/user/b/bsepulva/Private/sleep_filtered.rds")
+steps_filtered <- readRDS("/afs/crc.nd.edu/user/b/bsepulva/Private/steps_filtered.rds")
+
+# count non-null elements
+sleep_null <- sapply(sleep_filtered, is.null)
+sum(sleep_null) # 376388
+steps_null <- sapply(steps_filtered, is.null)
+sum(steps_null)
+  # same number of missing elements (as expected)
+
+# propotion of elements that are not null
+1 - (sum(sleep_null) / length(sleep_filtered))
+
+# remove NULL entries
+sleep_filtered <- plyr::compact(sleep_filtered)
+steps_filtered <- plyr::compact(steps_filtered)
+
+# plot distribution of element nrow()s
+sleep_nrow <- sapply(sleep_filtered, nrow)
+steps_nrow <- sapply(steps_filtered, nrow)
+
+# plot for sleep
+sleep_nrow_dist <- sleep_nrow %>%
+  as_tibble() %>% 
+  ggplot(aes(x = value)) +
+  geom_density(show.legend = FALSE) +
+  #coord_cartesian(xlim=c(1, 100)) +
+  labs(title = "Distribution of Number of Observations for Dyads",
+       subtitle = "Final Data before Time Series Models",
+       x = "Number of Observations",
+       y = "Density") +
+  theme_minimal()
+
+ggsave(file = "sleep_nrow_dist.png", 
+	plot = sleep_nrow_dist,
+	path = "/afs/crc.nd.edu/user/b/bsepulva/Private/")
+
+# plot for steps
+steps_nrow_dist <- steps_nrow %>%
+  as_tibble() %>% 
+  ggplot(aes(x = value)) +
+  geom_density(show.legend = FALSE) +
+  #coord_cartesian(xlim=c(1, 100)) +
+  labs(title = "Distribution of Number of Observations for Dyads",
+       subtitle = "Final Data before Time Series Models",
+       x = "Number of Observations",
+       y = "Density") +
+  theme_minimal()
+
+ggsave(file = "steps_nrow_dist.png", 
+	plot = steps_nrow_dist,
+	path = "/afs/crc.nd.edu/user/b/bsepulva/Private/")
 
 
-# apply to sleep
-sleep_filtered <- lapply(dyad_sleep_diffs, function(x){
-  
-  # get difference vector
-  diff_vector <- get_date_differences(x)
-  
-  # return NULL if there is at least one dicontinuity or only one date
-  if (length(diff_vector) == 0) {
+# remove elements with fewer than 10 observations
+sleep_filtered <- lapply(sleep_filtered, function(x){
+  if (nrow(x) < 10) {
     return(NULL)
-  } else if (max(diff_vector, na.rm = TRUE) > 1) {
-    return(NULL)
   } else {
-    # return original data object if no discontinuity
     return(x)
   }
 })
 
-
-
+# remove NULL elements
+sleep_filtered <- plyr::compact(sleep_filtered) # now 10820 elements
 
 
 ### run time series models using auto-arima
 
-auto_arima_results <- lapply(dyad_sleep_diffs[1:10], function(x){
+auto_arima_results <- lapply(sleep_filtered, function(x){
   x$diff %>% 
     forecast::auto.arima()
 })
 
-ggplot() +
-  geom_line(data = dyad_sleep_diffs[[1]], aes(x = datadate, y = diff)) +
-  geom_line(data = dyad_sleep_diffs[[2]], aes(x = datadate, y = diff)) 
+# dichotomize variable types for clustering?
