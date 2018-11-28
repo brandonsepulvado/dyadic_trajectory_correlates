@@ -28,6 +28,10 @@ library(forecast)
 sleep_filtered <- readRDS("/afs/crc.nd.edu/user/b/bsepulva/Private/sleep_filtered.rds")
 steps_filtered <- readRDS("/afs/crc.nd.edu/user/b/bsepulva/Private/steps_filtered.rds")
 
+# import on laptop
+sleep_filtered <- readRDS("sleep_filtered.rds")
+steps_filtered <- readRDS("steps_filtered.rds")
+
 # count non-null elements
 sleep_null <- sapply(sleep_filtered, is.null)
 sum(sleep_null) # 376388
@@ -80,7 +84,7 @@ ggsave(file = "steps_nrow_dist.png",
 
 
 # remove elements with fewer than 10 observations
-sleep_filtered <- lapply(sleep_filtered, function(x){
+sleep_filtered <- mclapply(sleep_filtered, function(x){
   if (nrow(x) < 10) {
     return(NULL)
   } else {
@@ -94,9 +98,23 @@ sleep_filtered <- plyr::compact(sleep_filtered) # now 10820 elements
 
 ### run time series models using auto-arima
 
-auto_arima_results <- lapply(sleep_filtered, function(x){
+auto_arima_results <- parallel::mclapply(sleep_filtered, function(x){
   x$diff %>% 
     forecast::auto.arima()
-})
+}, mc.cores = getOption("mc.cores", 4L))
 
-# dichotomize variable types for clustering?
+  # dichotomize variable types for clustering?
+
+# extract basic info for each model to use for clustering
+arma_output <- parallel::mclapply(auto_arima_results, 
+                                  function(x){
+                                    arma <- x$arma %>% 
+                                      t() %>% 
+                                      as_tibble()
+                                    return(arma)
+                                  }, mc.cores = getOption("mc.cores", 4L))
+
+# name variables with descriptive names
+
+# collapse arma_output
+arma_output <- bind_rows(arma_output)
