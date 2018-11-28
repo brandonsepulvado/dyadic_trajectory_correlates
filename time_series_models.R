@@ -152,7 +152,9 @@ arma_output_filtered <- arma_output_filtered %>%
 
 # clustering using k = 7
 set.seed(1234)
-kmeans_7 <- kmeans(arma_output_filtered, 7)
+kmeans_7 <- kmeans(arma_output_filtered, 
+                   centers = 7,
+                   nstart = 25)
 # Visualize
 fviz_cluster(kmeans_7, data = arma_output_filtered,
              ggtheme = theme_minimal())
