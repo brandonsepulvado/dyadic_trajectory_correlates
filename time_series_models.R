@@ -118,3 +118,41 @@ arma_output <- parallel::mclapply(auto_arima_results,
 
 # collapse arma_output
 arma_output <- bind_rows(arma_output)
+
+
+
+### clustering
+
+# k-means
+
+# optimal k
+library(factoextra)
+# via average silhouette width
+fviz_nbclust(arma_output_filtered, 
+             FUNcluster = kmeans, 
+             method = "silhouette") # 7 
+
+# via total within sum of squares
+fviz_nbclust(arma_output, 
+             FUNcluster = kmeans, 
+             method = "wss") # 7 
+
+# via gap stat
+fviz_nbclust(arma_output, 
+             FUNcluster = kmeans, 
+             method = "gap_stat")# 7
+
+# remove empty columns
+arma_output_filtered <- arma_output %>% 
+  select(V1, V2, V5, V6)
+
+# remove V5 because variance == 0
+arma_output_filtered <- arma_output_filtered %>% 
+  select(-V5)
+
+# clustering using k = 7
+set.seed(1234)
+kmeans_7 <- kmeans(arma_output_filtered, 7)
+# Visualize
+fviz_cluster(kmeans_7, data = arma_output_filtered,
+             ggtheme = theme_minimal())
