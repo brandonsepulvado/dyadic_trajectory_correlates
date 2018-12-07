@@ -60,7 +60,7 @@ same_time_steps
 There are 354,116 dyads that participated in NetHealth at the same time. 
 Now, for participants whose tenure overlapped, let's look at how many have missing data and what proportion of their tenure that consistutes. 
 
-```{r missing_data, echo=FALSE, message=FALSE, warning=FALSE}
+```{r missing_data, message=FALSE, warning=FALSE}
 # how many dyads have missing data, meaning both in study at same time
 # but one person (at least) has NA for day on given measure
 missing_steps_days <- sapply(dyad_steps_diffs, function(x) sum(is.na(x['diff'])))
