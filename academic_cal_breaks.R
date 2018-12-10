@@ -108,3 +108,6 @@ dates_to_remove <- bind_rows(midterm_f2015,
                                     summer_2018) %>% 
   rename(date = value)
 
+# remove constituent objects no longer necessary
+rm(list=setdiff(ls(), "dates_to_remove"))
+
