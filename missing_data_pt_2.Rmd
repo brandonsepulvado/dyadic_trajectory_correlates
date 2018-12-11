@@ -1,0 +1,176 @@
+---
+title: "Missing Data - Part 2"
+author: "Brandon Sepulvado"
+date: "12/10/2018"
+output: word_document
+---
+
+```{r load_packages, message=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+library(lubridate)
+library(here)
+```
+
+
+# Problem
+In the last missing data report, I identified two key issues with missing data: (1) the number of missing observations for each dyad and (2) the length of time between each dyadic observation. Each of these posed challenges to imputation and/or analysis, but we decided first to remove breaks.
+
+# Removing breaks
+
+## Load break data
+The following line creates a data frame (rather, a tibble) containing the various breaks as stated in the academic calendars from the 2015-2016 academic year through the end of the 2017-2018 academic year. I do not include the current one because I will remove everything past the end of Spring 2018. I will do so because the data used for the current analyses end in September 2018, and, as such, is incomplete. 
+```{r get_break_dates}
+source(here("academic_cal_breaks.R"))
+dates_to_remove
+```
+The script called produces `dates_to_remove`, a tibble for which each row is a date that should be removed from dyadic observations and which contains only a single date column. Note that, because each row is a date, there are not ranges to remove. 
+
+## Load dyad activity data
+The next step is to remove these dates from each dyad's observations contained in the following two objects.
+```{r load_dyad_asleep_steps}
+# load sleep data
+dyad_sleep_diffs <- readRDS(here("dyad_sleep_diffs.rds"))
+
+# load steps data
+dyad_steps_diffs <- readRDS(here("dyad_steps_diffs.rds"))
+
+# show data example
+dyad_sleep_diffs[[1]]
+```
+To reiterate basic information from the last report, these objects are lists with lengths equal to the number of dyads (~390,000) who overlapped in the study at any point.[^1] Each element contains a data frame (tibble) with five columns and a number of rows that varies according to the number of overlapping study days. The columns are `datadate`, `diff` (the difference for a given day in the focal activity count), `dyad_id` (the unique identifier for a dyad), `node1`, and `node2` (the unique nodal identifiers).
+
+[^1]: Overlap, as defined here, occurs on days for which both individuals have *some* form of observed fitbit data; this data does not necessarily have to be one of the focal activities under investigation (e.g., sleep or steps). These objects were created from the dailyfitbit.dta file and end in September 2018; see the data_import_clean.R file for more detailed information.
+
+## Remove break dates from activity data
+Now, I will remove the break dates from the dyad lists
+```{r remove_break_dates}
+# remove for sleep data
+dyad_sleep_diffs_filtered <- lapply(dyad_sleep_diffs, function(x){
+  x <- x %>% 
+    filter(!datadate %in% dates_to_remove$date)
+  
+  return(x)
+})
+
+# remove for steps
+dyad_steps_diffs_filtered <- lapply(dyad_steps_diffs, function(x){
+  x <- x %>% 
+    filter(!datadate %in% dates_to_remove$date)
+  
+  return(x)
+})
+```
+
+
+# Existing problems
+
+## Missing data
+The number of NAs was noted as one of two key problems. The following code visualizes the number and proportion of daily observations that have NA values *for each dyad*.
+
+```{r missing_data, message=FALSE, warning=FALSE}
+# how many dyads have missing data, meaning both in study at same time
+# but one person (at least) has NA for day on given measure
+missing_steps_count <- sapply(dyad_steps_diffs_filtered, function(x) sum(is.na(x['diff'])))
+missing_sleep_count <- sapply(dyad_sleep_diffs_filtered, function(x) sum(is.na(x['diff'])))
+
+# get proportion of dyad's common dates with missing data
+missing_steps_prop <- sapply(dyad_steps_diffs_filtered, function(x) sum(is.na(x['diff'])) / nrow(x))
+missing_sleep_prop <- sapply(dyad_sleep_diffs_filtered, function(x) sum(is.na(x['diff'])) / nrow(x))
+
+### counts
+
+# make tibble to be able to facet histogram
+steps_miss_count_t <- as_tibble(missing_steps_count) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "steps")
+sleep_miss_count_t <- as_tibble(missing_sleep_count) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "sleep")
+missing_count_combined <- bind_rows(steps_miss_count_t,
+                                   sleep_miss_count_t)
+
+# get mean for missing proportion types for histograms below
+mean_steps_count <- mean(steps_miss_count_t$proportion, na.rm = TRUE)
+mean_sleep_count <- mean(sleep_miss_count_t$proportion, na.rm = TRUE)
+
+# get median for missing proportion types 
+# get mean for missing proportion types for histograms below
+median_steps_count <- median(steps_miss_count_t$proportion, na.rm = TRUE)
+median_sleep_count <- median(sleep_miss_count_t$proportion, na.rm = TRUE)
+
+# plot histogram faceted
+missing_count_combined %>% 
+  ggplot(aes(x = proportion, fill = as.factor(activity))) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(~as.factor(activity)) +
+  labs(title = "Proportion of day data missing for each dyad",
+       x = "Proportion",
+       y = "Count") +
+  scale_fill_discrete(name = "Type of activity") +
+  geom_vline(data=filter(missing_count_combined, as.factor(activity)=="steps"),
+             aes(xintercept=mean_steps_count), 
+             linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_count_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=mean_sleep_count),
+             linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_count_combined, as.factor(activity)=="steps"),
+             aes(xintercept=median_steps_count),
+             linetype = "solid", colour="black") +
+  geom_vline(data=filter(missing_count_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=median_sleep_count),
+             linetype = "solid", colour="black")
+
+
+### proportions
+
+# make tibble to be able to facet histogram
+steps_miss_prop_t <- as_tibble(missing_steps_prop) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "steps")
+sleep_miss_prop_t <- as_tibble(missing_sleep_prop) %>% 
+  rename(proportion = value) %>% 
+  mutate(activity = "sleep")
+missing_prop_combined <- bind_rows(steps_miss_prop_t,
+                                   sleep_miss_prop_t)
+
+# get mean for missing proportion types for histograms below
+mean_steps_prop <- mean(steps_miss_prop_t$proportion, na.rm = TRUE)
+mean_sleep_prop <- mean(sleep_miss_prop_t$proportion, na.rm = TRUE)
+
+# get median for missing proportion types 
+# get mean for missing proportion types for histograms below
+median_steps_prop <- median(steps_miss_prop_t$proportion, na.rm = TRUE)
+median_sleep_prop <- median(sleep_miss_prop_t$proportion, na.rm = TRUE)
+
+# plot histogram faceted
+missing_prop_combined %>% 
+  ggplot(aes(x = proportion, fill = as.factor(activity))) +
+  geom_histogram(alpha = 0.5) +
+  facet_wrap(~as.factor(activity)) +
+  labs(title = "Proportion of day data missing for each dyad",
+       x = "Proportion",
+       y = "Count") +
+  scale_fill_discrete(name = "Type of activity") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
+             aes(xintercept=mean_steps_prop), 
+             linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=mean_sleep_prop),
+             linetype = "dashed", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="steps"),
+             aes(xintercept=median_steps_prop),
+             linetype = "solid", colour="black") +
+  geom_vline(data=filter(missing_prop_combined, as.factor(activity)=="sleep"),
+             aes(xintercept=median_sleep_prop),
+             linetype = "solid", colour="black")
+```
+
+## Gaps in observation dates (non-consecutive daily observations)
+
+
+# New problem
+Now that break dates have been removed, a new consideration arises: how do we align the last day before a removed period and the first day after it? If we are going to retain the ability to discern seasonality, then we must have equisdistant intervals between each observation. 
+
+One potential solution is to resume a time series starting on the day of the week that follows the last date before a deleted period. Doing so might throw out usable data, or it might introduce bias due to a transitionary period between return from break and normal activities. 
+
+Remove before first day of classes? When is first day that everyone would have observations? Does not work because new waves; plus, only shows up in these lists if both dyads have data. 
