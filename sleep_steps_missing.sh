@@ -6,5 +6,5 @@
 #$ -q long
 #$ -N sleep_remove_missing
 
-module load R
+module load R/3.5.1
 R CMD BATCH  sleep_steps_missing_input.R  sleep_missing_output.out
