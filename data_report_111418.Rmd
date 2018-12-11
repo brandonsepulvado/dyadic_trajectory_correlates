@@ -254,7 +254,7 @@ get_date_differences <- function(data, format = "day"){
   
   temp <- data %>% 
     filter(!is.na(diff)) %>% 
-    select(datadate)
+    select(datadate, dyad_id)
   
   temp <- ymd(temp$datadate)
   
