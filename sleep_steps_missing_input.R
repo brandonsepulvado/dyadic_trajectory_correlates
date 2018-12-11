@@ -24,17 +24,21 @@ get_date_differences <- function(data, format = "day"){
   
   temp <- data %>% 
     filter(!is.na(diff)) %>% 
-    select(datadate)
+    select(datadate, dyad_id)
   
   temp <- ymd(temp$datadate)
   
   diffs <- temp %>% 
     int_diff() %>% 
     as.duration() %>%
-    as.numeric()
+    as.numeric() %>% 
+    as_tibble() %>% 
+    mutate(dyad_id = unique(data$dyad_id)) %>% 
+    rename(diff = value)
   
   if (format == "day") {
-    return(diffs / 86400)
+    return(mutate(diffs, diff = diff / 86400))
+    #return(diffs / 86400)
   } else if (format == "seconds") {
     return(diffs)
   } else {
