@@ -249,7 +249,7 @@ get_date_differences <- function(data, date_var, activity_var, format = "day"){
 
 ```{r}
 # function to get interval vector
-get_date_differences <- function(data, format = "day"){
+get_date_differences <- function(data, format = "days"){
   #date_var <- enquo(date_var)
   
   temp <- data %>% 
@@ -263,7 +263,7 @@ get_date_differences <- function(data, format = "day"){
     as.duration() %>%
     as.numeric()
   
-  if(format == "day") {
+  if(format == "days") {
     return(diffs / 86400)
   } else if (format == "seconds") {
     return(diffs)
