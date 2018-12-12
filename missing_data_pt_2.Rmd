@@ -164,9 +164,7 @@ num_obs_combined %>%
        x = "Minimum number of non-missing observations",
        y = "Proportion of dyads remaining")
 ```
-
-
-I remove elements now to simply the data pruning process in the next step. For example, I will identify in the next step the overall levels of missing observations as well as *a threshold of acceptability*, and, if we were to retain cases with too few observations in this section, waiting for removal until the next stage might allow the cases to be retained that are near the acceptable threshold of number of observations but would only fall above the cutoff if observations with NA were included. This number of course would likely not be too large because the dyad would have to be close to threshold for total number of observations (just below) and also within the acceptable limit for number of missing observations. 
+This visualization illustrates how many dyads we lose at different numbers of minimum observations. The points of the line begin at seven and then represent a multiple of seven until 168, which is the last multiple of seven below the median number of dyadic observations. Unfortunately, there is no natural break in the line, but I recommend a *14 day minimum* because it is the lowest number that would enable us to identify weekly seasonality (that is, if there exists trends based on specific days of the week). We would retain roughly 85% of dyads.
 
 ## Missing data
 The number of NAs was noted as one of two key problems. The following code visualizes the number and proportion of daily observations that have NA values *for each dyad*.
@@ -251,7 +249,7 @@ missing_prop_combined %>%
   ggplot(aes(x = proportion, fill = as.factor(activity))) +
   geom_histogram(alpha = 0.5) +
   facet_wrap(~as.factor(activity)) +
-  labs(title = "Proportion of day data missing for each dyad",
+  labs(title = "Proportion of daily data missing for each dyad",
        x = "Proportion",
        y = "Count") +
   scale_fill_discrete(name = "Type of activity") +
@@ -271,6 +269,56 @@ missing_prop_combined %>%
 The preceeding code outputs two visualizations, each faceted by the type of activity (although they are almost identical). The first visualization shows the *number* of NA observations for each dyad, and the second shows the *proportion of each dyad's observations* that are NA. Examining the first set of two histograms, it is evident that the distribution of dyadic number of NAs is very skewed to the right. The median (sleep: `r median_sleep_count`, steps: `r median_steps_count`) is represented by the solid black vertical line, and the mean (sleep: `r mean_sleep_count`, steps: `r mean_steps_count`) is represented by the dashed line. 
 
 The second set of histograms presents the proportion of each dyad's observations that are missing. As before, the median (sleep: `r median_sleep_prop`, steps: `r median_steps_prop`) is represented by the solid black vertical line, and the mean (sleep: `r mean_sleep_prop`, steps: `r mean_steps_prop`) is represented by the dashed line. The results indicate that, while the majority of dyads have at least half of their data, most also have a non-negligible number of NAs. 
+
+In order to provide a bit more fine-grained insight into the number of cases we would retain at different missing data proportion thresholds, I next provide a line graph similar to the one in the previous section.
+```{r missing_prop_thresholds}
+# create thresholds
+prop_threshold <- tibble(threshold = seq(from = .05,
+                                         to = .4,
+                                         by = .05))
+
+# apply to sleep
+sleep_miss_prop_thresh <- lapply(prop_threshold$threshold, function(x){
+ prop_above_thresh <- missing_prop_combined %>% 
+   filter(activity == "sleep") %>% 
+   filter(proportion >= x) %>% 
+   summarise(proportion_dyads = n() / 390000)
+ }) %>%
+  bind_rows() %>% 
+  mutate(threshold = seq(from = .05, 
+                         to = .40, 
+                         by = .05),
+         activity = "sleep")
+
+# apply to steps
+steps_miss_prop_thresh <- lapply(prop_threshold$threshold, function(x){
+ prop_above_thresh <- missing_prop_combined %>% 
+   filter(activity == "steps") %>% 
+   filter(proportion >= x) %>% 
+   summarise(proportion_dyads = n() / 390000)
+ }) %>%
+  bind_rows() %>% 
+  mutate(threshold = seq(from = .05, 
+                         to = .40, 
+                         by = .05),
+         activity = "steps")
+
+# combine into single object
+num_obs_combined <- bind_rows(sleep_miss_prop_thresh, steps_miss_prop_thresh)
+
+# make type a factor
+num_obs_combined$activity <- as.factor(num_obs_combined$activity)
+
+# graph
+num_obs_combined %>% 
+  ggplot(aes(x = threshold, y = proportion_dyads)) +
+  geom_line(aes(linetype = activity, colour = activity)) +
+  geom_point() +
+  labs(title = "Proportion of dyads versus missing data thresholds (proportion)",
+       x = "Minimum proportion of non-missing dyadic observations",
+       y = "Proportion of dyads remaining")
+```
+
 
 
 ## Gaps in observation dates (non-consecutive daily observations)
