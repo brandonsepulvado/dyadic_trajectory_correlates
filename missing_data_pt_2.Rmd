@@ -9,6 +9,7 @@ output: word_document
 library(dplyr)
 library(lubridate)
 library(here)
+library(ggplot2)
 ```
 
 
@@ -81,31 +82,31 @@ missing_sleep_prop <- sapply(dyad_sleep_diffs_filtered, function(x) sum(is.na(x[
 
 # make tibble to be able to facet histogram
 steps_miss_count_t <- as_tibble(missing_steps_count) %>% 
-  rename(proportion = value) %>% 
+  rename(count = value) %>% 
   mutate(activity = "steps")
 sleep_miss_count_t <- as_tibble(missing_sleep_count) %>% 
-  rename(proportion = value) %>% 
+  rename(count = value) %>% 
   mutate(activity = "sleep")
 missing_count_combined <- bind_rows(steps_miss_count_t,
                                    sleep_miss_count_t)
 
 # get mean for missing proportion types for histograms below
-mean_steps_count <- mean(steps_miss_count_t$proportion, na.rm = TRUE)
-mean_sleep_count <- mean(sleep_miss_count_t$proportion, na.rm = TRUE)
+mean_steps_count <- mean(steps_miss_count_t$count, na.rm = TRUE)
+mean_sleep_count <- mean(sleep_miss_count_t$count, na.rm = TRUE)
 
 # get median for missing proportion types 
 # get mean for missing proportion types for histograms below
-median_steps_count <- median(steps_miss_count_t$proportion, na.rm = TRUE)
-median_sleep_count <- median(sleep_miss_count_t$proportion, na.rm = TRUE)
+median_steps_count <- median(steps_miss_count_t$count, na.rm = TRUE)
+median_sleep_count <- median(sleep_miss_count_t$count, na.rm = TRUE)
 
 # plot histogram faceted
 missing_count_combined %>% 
-  ggplot(aes(x = proportion, fill = as.factor(activity))) +
+  ggplot(aes(x = count, fill = as.factor(activity))) +
   geom_histogram(alpha = 0.5) +
   facet_wrap(~as.factor(activity)) +
-  labs(title = "Proportion of day data missing for each dyad",
-       x = "Proportion",
-       y = "Count") +
+  labs(title = "Number of NAs for each dyad",
+       x = "Number of NA Observations",
+       y = "Number of Dyads") +
   scale_fill_discrete(name = "Type of activity") +
   geom_vline(data=filter(missing_count_combined, as.factor(activity)=="steps"),
              aes(xintercept=mean_steps_count), 
@@ -164,8 +165,14 @@ missing_prop_combined %>%
              aes(xintercept=median_sleep_prop),
              linetype = "solid", colour="black")
 ```
+The preceeding code outputs two visualizations, each faceted by the type of activity (although they are almost identical). The first visualization shows the *number* of NA observations for each dyad, and the second shows the *proportion of each dyad's observations* that are NA. Examining the first set of two histograms, it is evident that the distribution of dyadic number of NAs is very skewed to the right. The median (sleep: `r median_sleep_count`, steps: `r median_steps_count`) is represented by the solid black vertical line, and the mean (sleep: `r mean_sleep_count`, steps: `r mean_steps_count`) is represented by the dashed line. 
+
+The second set of histograms presents the proportion of each dyad's observations that are missing. As before, the median (sleep: `r median_sleep_prop`, steps: `r median_steps_prop`) is represented by the solid black vertical line, and the mean (sleep: `r mean_sleep_prop`, steps: `r mean_steps_prop`) is represented by the dashed line. 
+
 
 ## Gaps in observation dates (non-consecutive daily observations)
+
+## Number of total observations
 
 
 # New problem
