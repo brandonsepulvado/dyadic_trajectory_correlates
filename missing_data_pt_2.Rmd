@@ -11,6 +11,7 @@ library(lubridate)
 library(here)
 library(ggplot2)
 library(tibble)
+library(parallel)
 ```
 
 
@@ -44,7 +45,7 @@ To reiterate basic information from the last report, these objects are lists wit
 [^1]: Overlap, as defined here, occurs on days for which both individuals have *some* form of observed fitbit data; this data does not necessarily have to be one of the focal activities under investigation (e.g., sleep or steps). These objects were created from the dailyfitbit.dta file and end in September 2018; see the data_import_clean.R file for more detailed information.
 
 ## Remove break dates from activity data
-Now, I will remove the break dates from the dyad lists
+Now, I will remove the break dates from the dyad lists.
 ```{r remove_break_dates}
 # remove for sleep data
 dyad_sleep_diffs_filtered <- lapply(dyad_sleep_diffs, function(x){
@@ -62,6 +63,13 @@ dyad_steps_diffs_filtered <- lapply(dyad_steps_diffs, function(x){
   return(x)
 })
 ```
+
+```{r save_filtered_objects, eval=FALSE, include=FALSE}
+saveRDS(dyad_sleep_diffs_filtered, file = here("dyad_sleep_diffs_filtered.rds"))
+saveRDS(dyad_steps_diffs_filtered, file = here("dyad_steps_diffs_filtered.rds"))
+
+```
+
 
 
 # Existing problems
@@ -322,6 +330,112 @@ num_obs_combined %>%
 
 
 ## Gaps in observation dates (non-consecutive daily observations)
+The next issue consists in the duration of time between observations because imputing missing values quickly becomes arbitrary. In the following code chunk, I get the differences in observations for each dyad, which means there will be one fewer row in this output than there are dyadic observation. I include this code for illustrtaive purposes, but I do not run it because it requires the CRC clusters. 
+```{r get_date_diffs, eval=FALSE}
+# function to get interval vector of date differences
+get_date_differences <- function(data, format = "day"){
+  
+  temp <- data %>% 
+    filter(!is.na(diff)) %>% 
+    select(datadate, dyad_id)
+  
+  temp <- ymd(temp$datadate)
+  
+  diffs <- temp %>% 
+    int_diff() %>% 
+    as.duration() %>%
+    as.numeric() %>% 
+    as_tibble() %>% 
+    mutate(dyad_id = unique(data$dyad_id)) %>% 
+    rename(diff = value)
+  
+  if (format == "day") {
+    return(mutate(diffs, diff = diff / 86400))
+    #return(diffs / 86400)
+  } else if (format == "seconds") {
+    return(diffs)
+  } else {
+    stop("You have chosen an unsupported date format!")
+  }
+}
+
+# apply to sleep
+sleep_date_diffs <- mclapply(dyad_sleep_diffs_filtered, function(x){
+  # get difference vector
+  diff_tibble <- get_date_differences(x)
+
+  # return outptu
+  return(diff_tibble)
+  }, mc.cores = getOption("mc.cores", 4L)
+)
+
+# apply to steps
+steps_date_diffs <- mclapply(dyad_steps_diffs_filtered, function(x){
+  # get difference vector
+  diff_tibble <- get_date_differences(x)
+
+  # return output
+  return(diff_tibble)
+  }, mc.cores = getOption("mc.cores", 4L)
+)
+
+# put in one tibble
+sleep_steps_date_diffs_t <- bind_rows(sleep_date_diffs, steps_date_diffs)
+```
+
+This code will load the output from the previous chunk.
+```{r load_crc_output}
+sleep_date_diffs <- readRDS(here("sleep_date_diffs.rds"))
+sleep_steps_diffs <- readRDS(here("steps_date_diffs.rds"))
+sleep_steps_date_diffs_t <- readRDS(here("sleep_steps_date_diffs_t.rds"))
+```
+The first two objects are lists with a length of 390,000 (the number of dyads), and the third object is a data frame/tibble that concatenates each element within both lists and then the two lists themselves. It has 175,202,434 rows and two columns (the difference between two observations for a dyad and the associated dyad id). Here are two examples.
+```{r crc_output_examples}
+head(sleep_date_diffs[[1]], 10)
+head(sleep_steps_date_diffs_t, 10)
+```
+
+Now, let's visualize the distribution of the intervals between dyadic observations.
+```{r}
+sleep_date_diffs %>% 
+  bind_rows() %>% 
+  ggplot(aes(x = diff)) +
+  geom_density(show.legend = FALSE) +
+  coord_cartesian(xlim = c(0, 15))
+```
+It seems that the natural break in the missing data has not changed from before filtering out the breaks. *Do we want to keep this at four or lower it?*
+
+The following code examines how many *dyads* we lose when we filter at 2, 3, and 4 day intervals between observations. 
+```{r}
+sapply(c(2,3,4), function(x){
+  sleep_steps_date_diffs_t %>% 
+    filter(diff <= x) %>% 
+    summarise(n_distinct(dyad_id) / 390000)
+})
+
+sleep_steps_date_diffs_t %>% 
+  summarise(prop_dyads_2 = filter(sleep_steps_date_diffs_t,
+                                  diff <= 2) %>% 
+                            summarise(n_distinct(dyad_id) / 390000))
+
+
+
+prop_intervals <- sapply(seq(from = 2, to = 4, by = 1),
+                         function(x){
+                           sleep_date_diffs %>%
+                             bind_rows() %>% 
+                            filter(diff <= x) %>% 
+                            summarise(n_dyads_filtered = n_distinct(dyad_id),
+                                      prop_filtered = n_dyads_filtered / 345976,
+                                      interval = x)
+                         })
+
+
+```
+
+
+
+
 
 
 
