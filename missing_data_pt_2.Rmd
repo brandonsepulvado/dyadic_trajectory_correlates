@@ -386,7 +386,7 @@ sleep_steps_date_diffs_t <- bind_rows(sleep_date_diffs, steps_date_diffs)
 This code will load the output from the previous chunk.
 ```{r load_crc_output}
 sleep_date_diffs <- readRDS(here("sleep_date_diffs.rds"))
-sleep_steps_diffs <- readRDS(here("steps_date_diffs.rds"))
+#sleep_steps_diffs <- readRDS(here("steps_date_diffs.rds"))
 sleep_steps_date_diffs_t <- readRDS(here("sleep_steps_date_diffs_t.rds"))
 ```
 The first two objects are lists with a length of 390,000 (the number of dyads), and the third object is a data frame/tibble that concatenates each element within both lists and then the two lists themselves. It has 175,202,434 rows and two columns (the difference between two observations for a dyad and the associated dyad id). Here are two examples.
@@ -396,7 +396,7 @@ head(sleep_steps_date_diffs_t, 10)
 ```
 
 Now, let's visualize the distribution of the intervals between dyadic observations.
-```{r}
+```{r, eval=FALSE}
 sleep_date_diffs %>% 
   bind_rows() %>% 
   ggplot(aes(x = diff)) +
@@ -407,37 +407,17 @@ It seems that the natural break in the missing data has not changed from before 
 
 The following code examines how many *dyads* we lose when we filter at 2, 3, and 4 day intervals between observations. 
 ```{r}
-sapply(c(2,3,4), function(x){
-  sleep_steps_date_diffs_t %>% 
-    filter(diff <= x) %>% 
-    summarise(n_distinct(dyad_id) / 390000)
-})
-
-sleep_steps_date_diffs_t %>% 
-  summarise(prop_dyads_2 = filter(sleep_steps_date_diffs_t,
-                                  diff <= 2) %>% 
-                            summarise(n_distinct(dyad_id) / 390000))
-
-
-
 prop_intervals <- sapply(seq(from = 2, to = 4, by = 1),
                          function(x){
                            sleep_date_diffs %>%
-                             bind_rows() %>% 
+                            bind_rows() %>% 
                             filter(diff <= x) %>% 
                             summarise(n_dyads_filtered = n_distinct(dyad_id),
                                       prop_filtered = n_dyads_filtered / 345976,
                                       interval = x)
                          })
-
-
 ```
-
-
-
-
-
-
+It thus seems that, although there are many observations throughout the dataset with observation gaps greater than the various thresholds, the number of dyads that would be lost if we simply excluded these cases is exceedingly low. 
 
 # New problem
 Now that break dates have been removed, a new consideration arises: how do we align the last day before a removed period and the first day after it? If we are going to retain the ability to discern seasonality, then we must have equisdistant intervals between each observation. 
