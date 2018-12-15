@@ -326,7 +326,7 @@ num_obs_combined %>%
        x = "Minimum proportion of non-missing dyadic observations",
        y = "Proportion of dyads remaining")
 ```
-
+**take conservative, moderate, and liberal thresholds**
 
 
 ## Gaps in observation dates (non-consecutive daily observations)
