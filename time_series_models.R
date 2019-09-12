@@ -103,6 +103,45 @@ auto_arima_results <- parallel::mclapply(sleep_filtered, function(x){
     forecast::auto.arima()
 }, mc.cores = getOption("mc.cores", 4L))
 
+auto_arima_results <- lapply(dyad_sleep_diffs_filtered, function(x){
+  x$diff %>% 
+    forecast::auto.arima()})
+
+# save output 
+saveRDS(auto_arima_results, file = "auto_arima_results_1.rds")
+
+# extract basic info for each model to use for clustering
+arma_output_basic <- lapply(auto_arima_results, 
+                      function(x){
+                        arma <- x$arma %>% 
+                          t() %>% 
+                          as_tibble()
+                      return(arma)})
+
+# name variables with descriptive names
+
+# collapse arma_output
+arma_output <- bind_rows(arma_output)
+
+# extract more ddetailed information
+arma_output_detail <- lapply(auto_arima_results,
+                             function(x){
+                               output <- x$coef %>% 
+                                 t() %>% 
+                                 as.data.frame()
+                               return(output)
+                            
+                             })
+
+
+
+
+
+
+
+
+
+
   # dichotomize variable types for clustering?
 
 # extract basic info for each model to use for clustering
@@ -119,6 +158,15 @@ arma_output <- parallel::mclapply(auto_arima_results,
 # collapse arma_output
 arma_output <- bind_rows(arma_output)
 
+# check if all columns have non-zero values
+max(arma_output$V3)
+max(arma_output$V4)
+max(arma_output$V7)
+
+# keep only non zero cols and those that vary
+arma_output <- arma_output %>% 
+  select(V1, V2, V5, V6)
+
 
 
 ### clustering
@@ -128,7 +176,7 @@ arma_output <- bind_rows(arma_output)
 # optimal k
 library(factoextra)
 # via average silhouette width
-fviz_nbclust(arma_output_filtered, 
+fviz_nbclust(arma_output, 
              FUNcluster = kmeans, 
              method = "silhouette") # 7 
 
@@ -141,6 +189,15 @@ fviz_nbclust(arma_output,
 fviz_nbclust(arma_output, 
              FUNcluster = kmeans, 
              method = "gap_stat")# 7
+
+
+
+
+
+
+
+
+
 
 # remove empty columns
 arma_output_filtered <- arma_output %>% 
