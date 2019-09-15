@@ -46,17 +46,56 @@ multiple_daily_obs <- fitbit_data %>%
   group_by(participid) %>% 
   count(datadate) %>% 
   ungroup() %>% 
-  filter(n > 1)
+  filter(n > 1) %>% 
+  left_join(select(fitbit_data, participid, datadate, steps, sleepmins), 
+            by = c('participid' = 'participid',
+                                'datadate' = 'datadate'))
+
+# get differences between steps and sleep (date duplicates) for each obs
+multiple_daily_obs %>% 
+  group_by(participid, datadate) %>% 
+  summarise(steps_diff = max(steps) - min(steps),
+            sleep_diff = max(sleepmins) - min(sleepmins)) %>% 
+  ungroup() %>% 
+  summarise(max_steps_diff = max(steps_diff, na.rm = TRUE),
+            max_sleep_diff = max(sleep_diff, na.rm = TRUE),
+            n_nonzero_steps = sum(steps_diff > 0, na.rm = TRUE),
+            n_nonserp_sleep = sum(sleep_diff > 0, na.rm = TRUE),
+            n_na_steps = sum(is.na(steps_diff)),
+            n_na_sleep  = sum(is.na(sleep_diff)))
+
+# how many NA for a  person on a given day
+multiple_daily_obs %>% 
+  group_by(participid, datadate) %>% 
+  summarise(sum_daily_na_steps = sum(is.na(steps)),
+            sum_daily_na_sleep = sum(is.na(sleepmins)))
+
+# when missing, is it both observations or sometimes only one?
+multiple_daily_obs %>% 
+  group_by(participid, datadate) %>% 
+  summarise(sum_daily_na_steps = sum(is.na(steps)),
+            sum_daily_na_sleep = sum(is.na(sleepmins))) %>% 
+  ungroup() %>% 
+  count(sum_daily_na_sleep)
 
 # how many unique participants with multiple daily observations?
 n_unique_dup <- multiple_daily_obs %>% 
   summarise(unique_ids = n_distinct(participid)) %>% 
   pull(unique_ids)
 
-# filter daily steps and sleep for first case 
-fitbit_data %>% 
-  filter(participid == multiple_daily_obs$participid[5] &
-           datadate == multiple_daily_obs$datadate[5]) %>% 
-  distinct(steps, sleepmins)
-
 # do the days with repeated observations exhaust all observations for these ids?
+
+# get number of dates per person in orig data
+n_dates_orig <- fitbit_data %>% 
+  filter(participid %in% multiple_daily_obs$participid) %>% 
+  group_by(participid) %>% 
+  summarise(n_dates_orig = n_distinct(datadate))
+
+# repeat for duplicates data
+n_dates_dup <- multiple_daily_obs %>% 
+  group_by(participid) %>% 
+  summarise(n_dates_dup = n_distinct(datadate)) 
+
+# join together
+n_dates_both <- n_dates_dup %>% 
+  left_join(n_dates_orig, by = c('participid' = 'participid'))
