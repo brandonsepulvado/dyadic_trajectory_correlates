@@ -4,3 +4,4 @@ all_dyad_diffs.rds
 *.dta
 *.DTA
 *.rds
+.Rhistory
