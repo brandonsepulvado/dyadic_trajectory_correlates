@@ -7,10 +7,13 @@ library(readstata13)
 library(dplyr)
 library(here)
 library(lubridate)
+library(janitor)
 
 # import data
-fitbit_data <- read.dta13(file = here::here("dailyfitbit.dta"))
-  # checkout warnings to isolate specific variables
+fitbit_data <- read.dta13(file = here::here("dailyfitbit.dta")) %>% 
+  clean_names()
+  # checkout warnings to isolate specific variables (factor label warning)
+  # most likely race and gender; ask about factor levels
 
 # convert to tibble
 fitbit_data <- as_tibble(fitbit_data)
@@ -20,6 +23,8 @@ names(fitbit_data)
 
 # class of each variable
 glimpse(fitbit_data)
+
+# note: idstudy is person-date participid is person identifier
 
 # make datadate a proper date format
 fitbit_data$datadate <- ymd(fitbit_data$datadate)
@@ -34,8 +39,3 @@ n_distinct(fitbit_data$idstudy) # 429071
 fitbit_data %>% 
   summarise(earliest_date = min(datadate),
             latest_date = max(datadate))
-
-# gender is an integer
-class(fitbit_data$gender)
-
-# race in a double
