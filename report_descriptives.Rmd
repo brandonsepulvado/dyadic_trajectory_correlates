@@ -1,0 +1,148 @@
+---
+title: 'NetHealth: Descriptives'
+author: "Brandon Sepulvado"
+date: "`r format(Sys.time())`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_packages, include=FALSE}
+library(here)
+library(tidyr)
+```
+
+# Imported data
+
+The following code chunk calls a script that imports and cleans the data.
+
+```{r create_data}
+source(here('data_import_clean.R'))
+```
+
+Now, let's check out the basic structure and contents of the data imported.
+
+```{r inspect_data}
+# get shape of data
+dim(fitbit_data)
+
+# which variables in object
+names(fitbit_data)
+
+# class of each variable
+glimpse(fitbit_data)
+
+# note: idstudy is person-date participid is person identifier
+
+```
+
+There are `r nrow(fitbit_data)` rows and `r ncol(fitbit_data)` columns in the data that contain very basic sociodemographic data (i.e., religion, gender, and race), unique identifiers for both the person (`participid`) and the observation (`idstudy`), and several variables about physical activity. The `glimpse()` function shows the class and the first several values of each variable. *Note that gender and race lack labels for each factor level*, which means that we do know the the value of each participant's response to these variables. 
+
+The next bit of code shows that the data contain `r n_distinct(fitbit_data$net_id_email)` unique participants and `r n_distinct(fitbit_data$idstudy)` unique person-day observations. Finally, the earliest recorded date is in July 2015, and the latest date is in September 2019. 
+
+```{r}
+# number of unique participants
+n_distinct(fitbit_data$net_id_email)
+
+# number of unique daily participant-observation units
+n_distinct(fitbit_data$idstudy) # 429071
+
+# earliest and latest dates
+fitbit_data %>% 
+  summarise(earliest_date = min(datadate),
+            latest_date = max(datadate))
+```
+
+We want to know now if there are any duplicate observations. The next code chunk begins to examine this. In particular, it counts for each participant the number of observations for each date, retains only those observations for which a person-day unit has duplicates, and then left joins the `steps` and `sleepmins` value for that date. 
+
+## Duplicates
+
+```{r}
+# for a given person, are there duplicate observations for a date?
+multiple_daily_obs <- fitbit_data %>% 
+  group_by(participid) %>% 
+  count(datadate) %>% 
+  ungroup() %>% 
+  filter(n > 1) %>% 
+  left_join(select(fitbit_data, participid, datadate, steps, sleepmins), 
+            by = c('participid' = 'participid',
+                                'datadate' = 'datadate'))
+
+# preview
+multiple_daily_obs
+```
+
+The first ten observations and additional information presented show that the data contain `r nrow(multiple_daily_obs)` observations that are duplicated at least one time. There are `r length(unique(multiple_daily_obs$participid))` participants with duplicate observations. 
+
+For these duplicate observations, are the `steps` and `sleepmins` values the same, or do they differ? The following code substracts, for each person-day observation, the minimum from the maximum value and presents both the maximum difference and number of non-zero differences. 
+
+```{r}
+# get differences between steps and sleep (date duplicates) for each obs
+multiple_daily_obs %>% 
+  group_by(participid, datadate) %>% 
+  summarise(steps_diff = max(steps) - min(steps),
+            sleep_diff = max(sleepmins) - min(sleepmins)) %>% 
+  ungroup() %>% 
+  summarise(max_steps_diff = max(steps_diff, na.rm = TRUE),
+            max_sleep_diff = max(sleep_diff, na.rm = TRUE),
+            n_nonzero_steps = sum(steps_diff > 0, na.rm = TRUE),
+            n_nonsero_sleep = sum(sleep_diff > 0, na.rm = TRUE),
+            # n_na_steps = sum(is.na(steps_diff)),
+            # n_na_sleep  = sum(is.na(sleep_diff))
+            )
+```
+
+The results indicate that the duplicates contain the same information for the relevant activity data. 
+
+Now, I want to know if the duplicated observations are the only observations for these participants or if the duplicates cover only part of their observations.
+
+```{r}
+# do the days with repeated observations exhaust all observations for these ids?
+
+# get number of dates per person in orig data
+n_dates_orig <- fitbit_data %>% 
+  filter(participid %in% multiple_daily_obs$participid) %>% 
+  group_by(participid) %>% 
+  summarise(n_dates_orig = n_distinct(datadate))
+
+# repeat for duplicates data
+n_dates_dup <- multiple_daily_obs %>% 
+  group_by(participid) %>% 
+  summarise(n_dates_dup = n_distinct(datadate)) 
+
+# join together
+n_dates_both <- n_dates_dup %>% 
+  left_join(n_dates_orig, by = c('participid' = 'participid'))
+
+# graph distibutions
+n_dates_both %>% 
+  mutate(prop_dup = n_dates_dup / n_dates_orig) %>% 
+  ggplot(aes(prop_dup)) +
+  geom_density(color  = 'orange2', fill = 'orange2', alpha = .6) +
+  theme_minimal() +
+  labs(x = 'Proportion of Observations that are Duplicates',
+       y = 'Density',
+       title = 'Distribution of Duplicate Proportions')
+```
+ The figure illustrates that the vast majority of participants with duplicate observations have fewer than 5% of their observations that are duplicates; no proportion goes abover .22-.23.
+
+## Missing data
+
+The data frame of duplicate observations does contain duplicated NAs. The following code shows that, when participant-dates have missing observations, all the associated observations are NA. 
+
+```{r}
+# when missing, is it both observations or sometimes only one?
+multiple_daily_obs %>% 
+  group_by(participid, datadate) %>% 
+  summarise(sum_daily_na_steps = sum(is.na(steps)),
+            sum_daily_na_sleep = sum(is.na(sleepmins))) %>% 
+  ungroup() %>% 
+  count(sum_daily_na_sleep)
+
+```
+
+
+
+
