@@ -28,4 +28,4 @@ data_fitbit <- fitbit_data %>%
   distinct()
 
 # create dyad trend objects
-source(here('create_dyad_trends.R'))
+source(here::here('create_dyad_trends.R'))
