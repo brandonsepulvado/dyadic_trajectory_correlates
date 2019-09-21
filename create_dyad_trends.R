@@ -31,12 +31,12 @@ get_dyads <- function(user_id_col, directed = FALSE){
 }
 
 # create dyad data; undirected 
-data_dyads <- get_dyads(fitbit_data$participid)
+data_dyads <- get_dyads(data_fitbit$participid)
 
 
 # produce function to get dyadic differences for a given activity 
 # variable names require quotation marks
-get_dyad_diffs <- function(dyad_df, activity_name, activity_data = fitbit_data){
+get_dyad_diffs <- function(dyad_df, activity_name, activity_data = data_fitbit){
   # get activity data for each vertex as new variable
   to_return <- dyad_df %>% 
     left_join(select(activity_data, participid, activity_name, datadate), 
