@@ -22,5 +22,10 @@ fitbit_data <- as_tibble(fitbit_data)
 # make datadate a proper date format
 fitbit_data$datadate <- ymd(fitbit_data$datadate)
 
+# remove duplicate observations
+data_fitbit <- fitbit_data %>% 
+  select(-idstudy) %>% 
+  distinct()
+
 # create dyad trend objects
 source(here('create_dyad_trends.R'))
