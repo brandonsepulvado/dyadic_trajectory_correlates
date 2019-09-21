@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r load_packages, include=FALSE}
+```{r load_packages, message=FALSE, warning=FALSE, include=FALSE}
 library(here)
 library(tidyr)
 ```
@@ -18,7 +18,7 @@ library(tidyr)
 
 The following code chunk calls a script that imports and cleans the data.
 
-```{r create_data}
+```{r create_data, message=FALSE, warning=FALSE}
 source(here('data_import_clean.R'))
 ```
 
@@ -33,9 +33,6 @@ names(fitbit_data)
 
 # class of each variable
 glimpse(fitbit_data)
-
-# note: idstudy is person-date participid is person identifier
-
 ```
 
 There are `r nrow(fitbit_data)` rows and `r ncol(fitbit_data)` columns in the data that contain very basic sociodemographic data (i.e., religion, gender, and race), unique identifiers for both the person (`participid`) and the observation (`idstudy`), and several variables about physical activity. The `glimpse()` function shows the class and the first several values of each variable. *Note that gender and race lack labels for each factor level*, which means that we do know the the value of each participant's response to these variables. 
@@ -126,7 +123,8 @@ n_dates_both %>%
        y = 'Density',
        title = 'Distribution of Duplicate Proportions')
 ```
- The figure illustrates that the vast majority of participants with duplicate observations have fewer than 5% of their observations that are duplicates; no proportion goes abover .22-.23.
+
+The figure illustrates that the vast majority of participants with duplicate observations have fewer than 5% of their observations that are duplicates; no proportion goes abover .22-.23.
 
 ## Missing data
 
