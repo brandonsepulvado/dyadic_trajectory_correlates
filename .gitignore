@@ -6,3 +6,7 @@ all_dyad_diffs.rds
 *.rds
 .Rhistory
 *.html
+
+# ignore folders
+output/
+input/
