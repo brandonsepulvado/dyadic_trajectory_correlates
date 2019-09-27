@@ -11,7 +11,7 @@ library(janitor)
 library(ggplot2)
 
 # import data
-fitbit_data <- read.dta13(file = here::here("dailyfitbit.dta")) %>% 
+fitbit_data <- read.dta13(file = here::here('input', 'dailyfitbit.dta')) %>% 
   clean_names()
   # checkout warnings to isolate specific variables (factor label warning)
   # most likely race and gender; ask about factor levels
@@ -28,4 +28,4 @@ data_fitbit <- fitbit_data %>%
   distinct()
 
 # create dyad trend objects
-source(here::here('create_dyad_trends.R'))
+source(here::here('code', 'create_dyad_trends.R'))
