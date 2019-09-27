@@ -1,6 +1,6 @@
-#####
-##### load and clean daily fitbit data for nethealth project
-#####
+# ==============================================================================
+# load and clean daily fitbit data for nethealth project
+# ==============================================================================
 
 # call libraries
 library(readstata13)
