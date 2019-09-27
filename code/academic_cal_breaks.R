@@ -7,6 +7,7 @@
 # load lubridate and dplyr
 library(lubridate)
 library(dplyr)
+library(tibble)
 
 # create sequences
 midterm_f2015 <- seq(from = ymd("2015-10-17"), to = ymd("2015-10-25"),
@@ -104,7 +105,4 @@ break_dates <- bind_rows(midterm_f2015,
                                     midterm_s2018,
                                     easter_2018,
                                     summer_2018)
-
-# remove constituent objects no longer necessary
-rm(list=setdiff(ls(), "break_dates"))
 
