@@ -55,5 +55,3 @@ get_dyad_diffs <- function(dyad_df, activity_name, activity_data = data_fitbit){
 # create data objects
 data_dyad_steps <- get_dyad_diffs(data_dyads, 'steps')
 data_dyad_sleep <- get_dyad_diffs(data_dyads, 'sleepmins')
-
-
