@@ -10,3 +10,7 @@ all_dyad_diffs.rds
 # ignore folders
 output/
 input/
+
+# ignore papers
+*.doc
+*.docx
