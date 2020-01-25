@@ -4,6 +4,10 @@
 
 # load packages
 library(tidyr)
+library(tsibble)
+library(furrr)
+library(purrr)
+library(imputeTS)
 
 # must first run : data_import_clean, create_dyad_trends
 # information on academic calendar in academic_cal_breaks
@@ -75,3 +79,148 @@ dyads_to_keep <- dyad_days %>%
 test <- test %>% 
   filter(id_dyad %in% dyads_to_keep)
 
+# create nested 
+data_steps_f2015 <- test %>% 
+  select(id_dyad, datadate, abs_diff) %>% 
+  group_by(id_dyad) %>% 
+  nest(.key = 'dyad_data')
+saveRDS(data_steps_f2015, file = here::here('output', 'data_steps_f2015.rds'))
+
+data_sample <- data_steps_f2015 %>% slice(1:10)
+test_sample <- test %>% 
+  select(id_dyad, datadate, abs_diff) %>% 
+  slice(1:200)
+
+test_tsibble <- test %>% 
+  select(id_dyad, datadate, abs_diff) %>% 
+  as_tsibble(key = id_dyad, index = datadate) %>% 
+  fill_gaps(.full = TRUE) %>% 
+  group_by_key() %>% 
+  nest(dyad_data = c(datadate, abs_diff))
+
+test_tsibble %>% 
+  slice(1:10) %>% 
+  unnest()
+  
+  test_tsibble_sample <- test %>% 
+  slice()
+  select(id_dyad, datadate, abs_diff) %>% 
+  as_tsibble(key = id_dyad, index = datadate) %>% 
+  fill_gaps(.full = TRUE)
+  
+interpolate <- function(df){
+  to_return <- df %>% 
+    as_tibble() %>% 
+    mutate(abs_diff = na_interpolation(abs_diff, option = 'linear'))
+  return(to_return)
+}
+
+library(furrr)
+library(tictoc)
+
+future::plan(sequential)
+
+tic()
+data_interpolated <- test_tsibble %>% 
+  mutate(dyad_data2 = map(dyad_data, interpolate)) %>% 
+  unnest(dyad_data2)
+toc()
+
+# # save so don't have to re-run
+# saveRDS(data_interpolated, file = here::here('output', 'data_interpolated.rds'))
+# 
+# plan(multiprocess)
+# tic()
+# test_tsibble %>% 
+#               head(10000) %>% 
+#               mutate(dyad_data2 = future_map(dyad_data, interpolate)) %>% 
+#               unnest(dyad_data2)
+# toc()
+# 
+# compare3 <- test_tsibble %>% 
+#   head(10) %>% 
+#   mutate(dyad_data2 = future_map(dyad_data, interpolate)) %>% 
+#   unnest(dyad_data2)
+# 
+# test_tsibble_10 <- test_tsibble 
+# 
+# tic()
+# test_tsibble_10$dyad_data2 <- test_tsibble_10$dyad_data %>% 
+#   map(., interpolate)
+# 
+# testing <- test_tsibble_10 %>% 
+#   group_split(id_dyad) %>% 
+#   map_dfr(.,
+#                  ~ .x %>% 
+#                    unnest(dyad_data2))
+# toc()
+# 
+# #plan(multiprocess)
+# tic()
+# test_tsibble_10$dyad_data2 <- test_tsibble_10$dyad_data %>% 
+#   future_map(., interpolate)
+# 
+# testing <- test_tsibble_10 %>% 
+#   group_split(id_dyad) %>% 
+#   future_map_dfr(.,
+#                   ~ .x %>% 
+#                    unnest(dyad_data2))
+# toc()
+
+
+# testing sample of time series
+tic()
+test_prepped <- data_interpolated %>% 
+  ungroup() %>% 
+  slice(1:500000) %>% 
+  select(id_dyad, abs_diff) %>% 
+  group_split(id_dyad, keep = FALSE) %>% 
+  map(., ~ .x %>% 
+        pull(abs_diff))
+toc()
+
+# test_results <- tsclust(test_prepped, 
+#         distance = 'sbd',
+#         centroid = 'shape',
+#         preproc = zscore
+#         )
+
+range_k <- 2:25
+tic()
+test_k <- tsclust(test_prepped,
+                  k = range_k,
+                  distance = 'sbd',
+                  centroid = 'shape',
+                  preproc = zscore)
+names(test_k) <- paste0(range_k)
+toc()
+tic()
+eval_k <- sapply(test_k, cvi, type = 'internal') %>% 
+  as.data.frame() %>% 
+  tibble::rownames_to_column(var = 'index') %>% 
+  # have minize or maximize variable
+  mutate(goal = case_when(index %in% c('COP', 'DB', "DBstar") ~ 'minimize',
+                          TRUE ~ 'maximize')) %>% 
+  gather(key = 'number_k', value = 'value', -c(index, goal))
+toc()
+
+library(ggforce)
+eval_k %>%
+  group_by(index) %>% 
+  mutate(value = (value - min(value)) / (max(value) - min(value))) %>% 
+  ggplot(aes(x = as.numeric(number_k), y = value, group = index, color = index)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~goal) +
+  theme_minimal() 
+
+
+# estimating with k = 5
+tic()
+test_k5 <- tsclust(test_prepped,
+                  k = 5,
+                  distance = 'sbd',
+                  centroid = 'shape',
+                  preproc = zscore)
+toc()
+plot(test_k5)
