@@ -16,3 +16,6 @@ input/
 *.docx
 
 *.DS_Store
+
+# file to create public data from original data
+*create_public_data.R
