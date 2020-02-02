@@ -5,7 +5,6 @@ library(dtwclust)
 library(parallel)
 library(dplyr)
 library(here)
-#library(tictoc)
 library(purrr)
 
 # load data
@@ -18,7 +17,6 @@ test_prepped <- data_interpolated %>%
   group_split(id_dyad, keep = FALSE) %>% 
   map(., ~ .x %>% 
         pull(abs_diff))
-
 
 # create multi-process workers
 workers <- makeCluster(10)

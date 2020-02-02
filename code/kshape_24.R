@@ -18,7 +18,6 @@ test_prepped <- data_interpolated %>%
   map(., ~ .x %>% 
         pull(abs_diff))
 
-
 # create multi-process workers
 workers <- makeCluster(24)
 
@@ -40,7 +39,6 @@ kshape_24 <- tsclust(test_prepped,
                   preproc = zscore,
                   seed = 1234,
                   control = partitional_control(iter.max = 500L))
-
 
 # save results
 saveRDS(kshape_24, file = here('Private', 'nethealth', 'kshape_24.rds'))
