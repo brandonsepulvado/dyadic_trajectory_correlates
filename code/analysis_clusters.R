@@ -3,6 +3,75 @@
 # ==============================================================================
 
 # ==============================================================================
+# import and visualize clustering results
+
+# 21 clusters ==================================================================
+
+# model with 21 clusters
+kshape_21 <- readRDS(here::here('output', 'kshape_21_20200208.rds'))
+
+# visualize 21 clusters 
+plot(kshape_21, type = 'centroids') +
+  facet_wrap(~cl, scales = 'free', ncol = 4) +
+  labs(x = 'Day',
+       y = 'Value (z-normalized)',
+       title = NULL)
+
+# get table with cluster name and size
+
+# prepare info
+cluster_sizes_21 <- kshape_24@clusinfo %>% 
+  tibble::rowid_to_column(var = 'cluster_number') %>% 
+  select(-av_dist)
+
+# save table to excel
+write.xlsx(cluster_sizes_21, file = here::here('output', 'cluster_sizes_21.xlsx'))
+
+# plot the numbers
+cluster_sizes_21 %>% 
+  ggplot(aes(x = as.factor(cluster_number), y = size)) +
+  geom_col(fill = 'orange2', alpha = 1) +
+  geom_text(aes(label=size), vjust= 1.6, color="white", size=3) +
+  theme_minimal() +
+  labs(#title = 'Cluster sizes',
+    x = 'Cluster number',
+    y = 'Number of dyads')
+
+# 24 clusters ==================================================================
+
+# import model with 24 clusters
+kshape_24 <- readRDS(here::here('output', 'kshape_24_20200208.rds'))
+
+# visualize 24 clusters
+plot(kshape_24, type = 'centroids') +
+  facet_wrap(~cl, scales = 'free', ncol = 4) +
+  labs(x = 'Day',
+       y = 'Value (z-normalized)',
+       title = NULL)
+
+# get table with cluster name and size
+
+# prepare info
+cluster_sizes_24 <- kshape_24@clusinfo %>% 
+  tibble::rowid_to_column(var = 'cluster_number') %>% 
+  select(-av_dist)
+
+# save table to excel
+write.xlsx(cluster_sizes_24, file = here::here('output', 'cluster_sizes_24.xlsx'))
+
+# plot the numbers
+cluster_sizes_24 %>% 
+  ggplot(aes(x = as.factor(cluster_number), y = size)) +
+  geom_col(fill = 'orange2', alpha = 1) +
+  geom_text(aes(label=size), vjust= 1.6, color="white", size=3) +
+  theme_minimal() +
+  labs(#title = 'Cluster sizes',
+    x = 'Cluster number',
+    y = 'Number of dyads')
+
+
+
+# ==============================================================================
 # prepare data
 
 # create data to join
