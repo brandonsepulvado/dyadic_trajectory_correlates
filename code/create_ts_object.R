@@ -14,29 +14,29 @@ library(imputeTS)
 
 # steps
 
-# remove mis
-test <- data_dyad_steps %>% 
+# remove missing
+df_dyad <- data_dyad_steps %>% 
   filter(!is.na(abs_diff),
          datadate < '2015-12-19') %>% # start of xmas break
   distinct() # keep only distinct observations
 
 # add dyad identifier (single, rather than two cols)
-test <- test %>% 
+df_dyad <- df_dyad %>% 
   unite(id_dyad, vertex_1, vertex_2, sep = '-', remove = FALSE)
 
 # get number of days in period
-date_start <- min(test$datadate)
-date_end <- max(test$datadate)
+date_start <- min(df_dyad$datadate)
+date_end <- max(df_dyad$datadate)
 period_in_days <- as.numeric(date_end - date_start)
 
 # number of observations per dyad
-dyad_days <- test %>% 
+dyad_days <- df_dyad %>% 
   group_by(id_dyad) %>% 
   summarise(n_days = n_distinct(datadate),
             prop_total = n_days / period_in_days)
 
 # keep only days starting in september
-test <- test %>% 
+df_dyad <- df_dyad %>% 
   filter(datadate >= '2015-09-01') %>% # patterns established by Sept 1
   distinct() # keep only distinct observations
 
@@ -51,17 +51,17 @@ dyads_to_keep <- dyad_days %>%
   pull(id_dyad)
 
 # filter out irrelevant dyads
-test <- test %>% 
+df_dyad <- df_dyad %>% 
   filter(id_dyad %in% dyads_to_keep)
 
 # create nested 
-data_steps_f2015 <- test %>% 
+data_steps_f2015 <- df_dyad %>% 
   select(id_dyad, datadate, abs_diff) %>% 
   group_by(id_dyad) %>% 
   nest(.key = 'dyad_data')
 #saveRDS(data_steps_f2015, file = here::here('output', 'data_steps_f2015.rds'))
 
-test_tsibble <- test %>% 
+dyad_tsibble <- df_dyad %>% 
   select(id_dyad, datadate, abs_diff) %>% 
   as_tsibble(key = id_dyad, index = datadate) %>% 
   fill_gaps(.full = TRUE) %>% 
@@ -80,9 +80,12 @@ interpolate <- function(df){
 future::plan(sequential)
 
 # now interpolate missing observations
-data_interpolated <- test_tsibble %>% 
+data_interpolated <- dyad_tsibble %>% 
   mutate(dyad_data2 = map(dyad_data, interpolate)) %>% 
   unnest(dyad_data2)
 
-# # save so don't have to re-run
-# saveRDS(data_interpolated, file = here::here('output', 'data_interpolated.rds'))
+# save so don't have to re-run
+saveRDS(data_interpolated, file = here::here('output',
+                                             paste0('data_interpolated_', 
+                                                    Sys.Date(), 
+                                                    '.rds')))
