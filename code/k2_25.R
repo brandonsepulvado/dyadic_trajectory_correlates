@@ -8,7 +8,7 @@ library(here)
 library(purrr)
 
 # load data
-data_interpolated <- readRDS(file = here('Private', 'nethealth', 'data_interpolated.rds'))
+data_interpolated <- readRDS(file = here('Private', 'nethealth', 'data_interpolated_2020-02-02.rds'))
 
 # testing sample of time series
 test_prepped <- data_interpolated %>% 
@@ -47,4 +47,4 @@ test_k <- tsclust(test_prepped,
 names(test_k) <- paste0(range_k)
 
 # save results
-saveRDS(test_k, file = here('Private', 'nethealth', 'k_2-25.rds'))
+saveRDS(test_k, file = here('Private', 'nethealth', 'k_2-25_20200203.rds'))

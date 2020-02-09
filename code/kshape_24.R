@@ -8,7 +8,7 @@ library(here)
 library(purrr)
 
 # load data
-data_interpolated <- readRDS(file = here('Private', 'nethealth', 'data_interpolated.rds'))
+data_interpolated <- readRDS(file = here('Private', 'nethealth', 'data_interpolated_2020-02-02.rds'))
 
 # testing sample of time series
 test_prepped <- data_interpolated %>% 
