@@ -57,4 +57,4 @@ kshape_21 <- tsclust(test_prepped,
                      control = partitional_control(iter.max = 500L))
 
 # save results
-saveRDS(kshape_24, file = here('Private', 'nethealth', 'kshape_21_20200208.rds'))
+saveRDS(kshape_21, file = here('Private', 'nethealth', 'kshape_21_20200208.rds'))
