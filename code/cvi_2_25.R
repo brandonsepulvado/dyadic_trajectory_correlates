@@ -29,17 +29,17 @@ class(test_k)
 # get tibble of cvi values for different k
 eval_k <- sapply(test_k, cvi, type = 'internal') 
 
-# make into tibble with min/max variable
-eval_k <- eval_k %>% 
-  as.data.frame() %>% 
-  tibble::rownames_to_column(var = 'index') %>% 
-  # have minize or maximize variable
-  mutate(goal = case_when(index %in% c('COP', 'DB', "DBstar") ~ 'minimize',
-                          TRUE ~ 'maximize')) 
-
-# gather for plotting
-eval_k <- eval_k %>% 
-  gather(key = 'number_k', value = 'value', -c(index, goal))
-
+# # make into tibble with min/max variable
+# eval_k <- eval_k %>%
+#   as.data.frame() %>%
+#   tibble::rownames_to_column(var = 'index') %>%
+#   # have minize or maximize variable
+#   mutate(goal = case_when(index %in% c('COP', 'DB', "DBstar") ~ 'minimize',
+#                           TRUE ~ 'maximize'))
+# # 
+# # # gather for plotting
+# # eval_k <- eval_k %>% 
+# #   gather(key = 'number_k', value = 'value', -c(index, goal))
+# 
 # save results
 saveRDS(eval_k, file = here::here('Private', 'nethealth', 'cvi_2_25_20200203.rds'))
