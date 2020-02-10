@@ -96,13 +96,13 @@ data_final <- dyads %>%
   ungroup()
 
 # verify no NAs
-data_final %>% summarise_at(vars(genderv1:youreligv2), ~sum(is.na(.)))
+data_final %>% summarise_at(vars(gender_v1:yourelig_v2), ~sum(is.na(.)))
 
 # generate homophily variables
 data_final <- data_final %>% 
-  mutate(gender_same = gender_v1 == gender_v2,
-         race_same = race_v1 == race_v2,
-         relig_same = yourelig_v1 == yourelig_v2)
+  mutate(gender_same = (gender_v1 == gender_v2),
+         race_same = (race_v1 == race_v2),
+         relig_same = (yourelig_v1 == yourelig_v2))
 
 # add cluster assignments
 data_final <- data_final %>% 
