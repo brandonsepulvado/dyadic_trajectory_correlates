@@ -44,6 +44,6 @@ The data may be found on Harvard's Dataverse at this [link]().
 
 **kshape_24_21.R** runs the k-shape algorithm for 21 and 24 clusters, as they were the two best candidate cluster numbers, given the results of the cluster validity indices. The required input object is the data_intperolated object from the **create_ts_object.R** file. **kshape_24_21.sh** submits the previous file to the ND CRC.  
 
-**analysis_clusters.R**
+**analysis_clusters.R** does two things. (1) It provides descriptives on the two k-shape objects (i.e., for 21 and 24 clusters) in the previous file. (2) It generates homophily variables used in logistic regressions to identify relationships between sociodemographic characteristics and the dyadic trajectory clusters, and (3) it performs these logistic regressions. 
 
-**edge_regressions.R**
+**edge_regressions.R** must be run after analysis_clusters.R because it relies upon one of the objects. This file performs logistic regressions (regular, with Firth correction, and Firth Logistic regression with Intercept Correction--FLIC).
