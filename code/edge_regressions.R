@@ -1,51 +1,17 @@
 # ==============================================================================
-# create edge list
-# ==============================================================================
-
-# import edge list (original)
-edge_list <- read.dta13(file = here::here('input', 'arcsfall2015.dta')) %>% 
-  as_tibble() # keeping i and j bc will change with fibit identifiers
-
-# import id keys
-id_key <- read.dta13(file = here::here('input', 'FitbitEgoId.dta')) %>% 
-  as_tibble() %>% 
-  mutate(fitbitid = case_when(fitbitid == 'NA' ~ NA_character_,
-                              TRUE ~ fitbitid),
-         fitbitid = stringr::str_trim(fitbitid, 'both'))
-
-# join fitbit ids
-edge_list_joined <- edge_list %>% 
-  left_join(id_key, by = c('i' = 'egoid')) %>% 
-  left_join(id_key, by = c('j' = 'egoid'), suffix = c('_1', '_2')) %>% 
-  filter(!is.na(fitbitid_1) & !is.na(fitbitid_2)) %>% 
-  mutate(fitbitid_1 = stringr::str_trim(fitbitid_1, 'both'),
-         fitbitid_2 = stringr::str_trim(fitbitid_2, 'both')) %>% 
-  unite(arc_1, fitbitid_1, fitbitid_2, sep = "-", remove = FALSE) %>% 
-  unite(arc_2, fitbitid_2, fitbitid_1, sep = "-", remove = FALSE)
-
-# missing data due to fitibit ids NA
-edge_list %>% 
-  left_join(id_key, by = c('i' = 'egoid')) %>% 
-  left_join(id_key, by = c('j' = 'egoid'), suffix = c('_1', '_2')) %>% 
-  summarise(i_missing = sum(is.na(fitbitid_1)),
-            j_missing = sum(is.na(fitbitid_2)),
-            iandj_missing = sum(is.na(fitbitid_1) & is.na(fitbitid_2)),
-            iorj_missing = sum(is.na(fitbitid_1) | is.na(fitbitid_2)))
-
-# how many fitbitid missing from beginning
-id_key %>% 
-  mutate(fitbitid = case_when(fitbitid == 'NA' ~ NA_character_,
-                              TRUE ~ fitbitid)) %>% 
-  summarise(n_missing = sum(is.na(fitbitid)))
-
-# ==============================================================================
 # collapsing arcs to edges via igraph
+
+# load packages
+library(igraph)
+library(stringr)
+
+# import arc list
+edge_list_joined <- read.csv(here::here('input', 'arcs_fall_2015.csv')) %>% 
+  as_tibble()
 
 # get arc_list
 arc_list <- edge_list_joined %>% 
-  select(fitbitid_1, fitbitid_2)
-
-library(igraph)
+  select(participid_1, participid_2)
 
 # create igraph object
 graph_obj <- graph_from_data_frame(arc_list, directed = TRUE)
@@ -53,8 +19,6 @@ graph_obj <- graph_from_data_frame(arc_list, directed = TRUE)
 # collapse to undirected
 graph_obj <- as.undirected(graph_obj, 
                            mode = "collapse") # edge if at least one directed
-
-library(stringr)
 
 # get new edgelist
 edges_undir <- as_edgelist(graph_obj) %>% 
@@ -65,12 +29,15 @@ edges_undir <- as_edgelist(graph_obj) %>%
 edges_undir <- edges_undir %>% 
   unite(identifier, V1, V2, sep = '-', remove = FALSE)
 
+# data_final comes from analysis_clusters.R
+
 # test edge variable
 data_final %>% 
   unite(id_dyad_rev, vertex_2, vertex_1, sep = '-', remove = FALSE) %>% 
   mutate(edge_test = case_when(id_dyad %in% edges_undir$identifier | id_dyad_rev %in% edges_undir$identifier ~ TRUE,
                                TRUE ~ FALSE)) %>% 
-  summarise(sum(edge), sum(edge_test)) # still 687
+  summarise(#sum(edge), 
+            sum(edge_test)) # still 687
 
 # test on all dyads
 data_dyad_steps %>% 
@@ -95,7 +62,7 @@ data_dyad_steps %>%
 
 # create edge variable
 data_final <- data_final %>% 
-  mutate(edge = id_dyad %in% edge_list_key$id_dyad,
+  mutate(#edge = id_dyad %in% edge_list_key$id_dyad,
          edge_arc = case_when(id_dyad %in% edge_list_joined$arc_1 | id_dyad %in% edge_list_joined$arc_2 ~ TRUE,
                               TRUE ~ FALSE))
 
@@ -146,25 +113,25 @@ flic <- function(x,y) {
   return(res)
 }
 
-flac <- function(x,y){
-  temp.fit1 <- logistf::logistf(y~x, pl=FALSE)
-  temp.pseudo <- c(rep(0,length(y)), rep(1, 2*length(y)))
-  temp.neww <- c(rep(1,length(y)), temp.fit1$hat/2, temp.fit1$hat/2)
-  temp.fit2 <- logistf::logistf(c(y,y,1-y)~rbind(x,x,x)+temp.pseudo, weights=temp.neww, family=binomial(logit),
-                        firth=FALSE, pl=TRUE)
-  res <- list()
-  res$coefficients <- temp.fit2$coefficients[which("temp.pseudo"!= names(temp.fit2$coefficients) )]
-  res$fitted <- temp.fit2$predict[1:length(y)]
-  res$linear.predictors <- temp.fit2$linear.predictors[1:length(y)]
-  res$probabilities <- temp.fit2$probabilities[which("temp.pseudo"!= names(temp.fit2$prob) )]
-  res$ci.lower <- temp.fit2$ci.lower[which("temp.pseudo"!= names(temp.fit2$ci.lower)) ]
-  res$ci.upper <- temp.fit2$ci.upper[which("temp.pseudo"!= names(temp.fit2$ci.upper)) ]
-  return(res)
-}
+# flac <- function(x,y){
+#   temp.fit1 <- logistf::logistf(y~x, pl=FALSE)
+#   temp.pseudo <- c(rep(0,length(y)), rep(1, 2*length(y)))
+#   temp.neww <- c(rep(1,length(y)), temp.fit1$hat/2, temp.fit1$hat/2)
+#   temp.fit2 <- logistf::logistf(c(y,y,1-y)~rbind(x,x,x)+temp.pseudo, weights=temp.neww, family=binomial(logit),
+#                         firth=FALSE, pl=TRUE)
+#   res <- list()
+#   res$coefficients <- temp.fit2$coefficients[which("temp.pseudo"!= names(temp.fit2$coefficients) )]
+#   res$fitted <- temp.fit2$predict[1:length(y)]
+#   res$linear.predictors <- temp.fit2$linear.predictors[1:length(y)]
+#   res$probabilities <- temp.fit2$probabilities[which("temp.pseudo"!= names(temp.fit2$prob) )]
+#   res$ci.lower <- temp.fit2$ci.lower[which("temp.pseudo"!= names(temp.fit2$ci.lower)) ]
+#   res$ci.upper <- temp.fit2$ci.upper[which("temp.pseudo"!= names(temp.fit2$ci.upper)) ]
+#   return(res)
+# }
 
 # run models
-model_edge_flic <- flic(x = data_final$assigned_cluster, y = data_final$edge)
-model_edge_flac <- flac(x = data_final$assigned_cluster, y = data_final$edge)
+model_edge_flic <- flic(x = data_final$assigned_cluster, y = data_final$edge_arc) # was originally edge
+# model_edge_flac <- flac(x = data_final$assigned_cluster, y = data_final$edge_arc) # was originally edge
 
 
 # output tables
