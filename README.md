@@ -42,4 +42,8 @@ The data may be found on Harvard's Dataverse at this [link]().
 
 **plot_cvi_results.R** takes the output of the previous file and plots them. The visualization splits the seven cluster validity indices into two panes for which the indicators should be either maximized or minimized, and it includes [min-max normalization](https://en.wikipedia.org/wiki/Feature_scaling#Standardization_(Z-score_Normalization)/) so that the CVIs fall on the same scale.  
 
-**kshape_24_21.R** runs the k-shape algorithm for 21 and 24 clusters, as they were the two best candidate cluster numbers, given the results of the cluster validity indices. The required input object is the data_intperolated object from the **create_ts_object.R** file. **kshape_24_21.sh** submits the previous file to the ND CRC
+**kshape_24_21.R** runs the k-shape algorithm for 21 and 24 clusters, as they were the two best candidate cluster numbers, given the results of the cluster validity indices. The required input object is the data_intperolated object from the **create_ts_object.R** file. **kshape_24_21.sh** submits the previous file to the ND CRC.  
+
+**analysis_clusters.R**
+
+**edge_regressions.R**
