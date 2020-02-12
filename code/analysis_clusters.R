@@ -166,3 +166,27 @@ aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), L = l)
 htmlreg(list(model_gender, model_race, model_relig),
         file = here::here('output', 'reg_table.doc'),
         single.row = TRUE)
+
+# ROC for models ===============================================================
+
+get_roc_plot <- function(log_reg){
+  # get predictions
+  predictions <- predict(log_reg, type = c('response'))
+  # get roc info
+  roc_curve <- roc(log_reg$y ~ predictions)
+  # plot the results
+  roc_plot <- plot.roc(roc_curve,
+                       print.auc = TRUE,
+                       xlim = c(1,0))
+  # return the plot
+  return(roc_plot)
+}
+
+# get curve for gender model
+get_roc_plot(model_gender) # .52
+
+# get curve for race model
+get_roc_plot(model_race) # .56
+
+# get curve for religion model
+get_roc_plot(model_relig) # .56
