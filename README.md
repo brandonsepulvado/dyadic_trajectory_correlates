@@ -12,7 +12,7 @@ Matthew J. Chandler, Princeton University
 
 
 ## NetHealth Study
-Work associated with the NIH-funded NetHealth project at the University of Notre Dame
+This work was funded by the National Institutes of Health (NIH) grant 1R01HL117757.
 
 ## Workflow
 
