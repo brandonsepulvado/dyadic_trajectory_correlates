@@ -2,16 +2,6 @@
 # relationship cluster membership and sociodemographic traits
 # ==============================================================================
 
-# load packages
-library(dplyr)
-library(here)
-library(dtwclust)
-library(tidyr)
-library(texreg)
-library(margins)
-library(glue)
-library(pROC)
-
 # ==============================================================================
 # import and visualize clustering results
 
@@ -30,12 +20,12 @@ plot(kshape_21, type = 'centroids') +
 # get table with cluster name and size
 
 # prepare info
-cluster_sizes_21 <- kshape_21@clusinfo %>% 
+cluster_sizes_21 <- kshape_24@clusinfo %>% 
   tibble::rowid_to_column(var = 'cluster_number') %>% 
   select(-av_dist)
 
 # save table to excel
-write.xlsx(cluster_sizes_21, file = here('output', 'cluster_sizes_21.xlsx'))
+write.xlsx(cluster_sizes_21, file = here::here('output', 'cluster_sizes_21.xlsx'))
 
 # plot the numbers
 cluster_sizes_21 %>% 
@@ -50,7 +40,7 @@ cluster_sizes_21 %>%
 # 24 clusters ==================================================================
 
 # import model with 24 clusters
-kshape_24 <- readRDS(file = here::here('output', 'kshape_24_20200208.rds'))
+kshape_24 <- readRDS(here::here('output', 'kshape_24_20200208.rds'))
 
 # visualize 24 clusters
 plot(kshape_24, type = 'centroids') +
@@ -89,19 +79,16 @@ data_demog <- data_fitbit %>%
   select(participid, gender, race, yourelig) %>% 
   distinct()
 
-# load data interpolated (run on ND CRC)
-data_interpolated <- readRDS(here::here('output', 'data_interpolated_2020-02-02.rds'))
-
-# keep only dyad_id from data_interpolated
+# get dyad_id from data_interpolated
 dyads <- data_interpolated %>% 
   select(id_dyad) %>% 
   distinct()
 
-# create (two) vertex variables, doesn't drop dyad identifier
+# create vertex variables
 dyads <- dyads %>% 
   separate(id_dyad, c('vertex_1', 'vertex_2'), sep = "-", remove = FALSE)
 
-# join demographics for each vertex
+# join demographics
 data_final <- dyads %>% 
   left_join(data_demog, by = c('vertex_1' = 'participid')) %>% 
   left_join(data_demog, by = c('vertex_2' = 'participid'),
@@ -129,7 +116,7 @@ data_final <- data_final %>%
 
 # function to get counts
 get_counts <- function(variable){
-  fitbit_data %>% # note this is not data_final
+  fitbit_data %>% 
     select(participid, {{variable}}) %>% 
     distinct() %>% 
     filter(!is.na({{variable}})) %>% 
@@ -149,6 +136,9 @@ get_counts(yourelig)
 
 # ==============================================================================
 # estimate logistic models
+
+library(texreg)
+library(margins)
 
 # predicting same gender
 model_gender <- glm(as.numeric(gender_same) ~ assigned_cluster,
@@ -174,5 +164,5 @@ aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), L = l)
 
 # save output
 htmlreg(list(model_gender, model_race, model_relig),
-        file = here::here('output', glue('reg_table_{Sys.Date()}.doc')),
+        file = here::here('output', 'reg_table.doc'),
         single.row = TRUE)
