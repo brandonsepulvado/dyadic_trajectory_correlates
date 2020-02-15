@@ -14,8 +14,6 @@ library(margins)
 
 # model with 21 clusters
 kshape_21 <- readRDS(here::here('output', 'kshape_21_20200208.rds'))
-# kshape_21_2 <- readRDS(file.path('/Users', 'brandonsepulvado', 'Downloads',
-#                                  'kshape_21_20200208.rds'))
 
 # visualize 21 clusters 
 plot(kshape_21, type = 'centroids') +
