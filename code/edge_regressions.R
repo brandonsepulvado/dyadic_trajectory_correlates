@@ -158,6 +158,12 @@ write.xlsx(list(output_firth, output_flic),
 
 # ROC (function in analysis_clusters.R) ========================================
 
-get_roc_plot(model_edge_firth) # doesn't work
-get_roc_plot(model_edge_flic) # doesn't work
-get_roc_plot(logistic_test)
+# previous function won't work here
+
+# get roc info
+roc_curve <- roc(model_edge_firth$y ~ model_edge_firth$predict)
+
+# plot figure
+plot.roc(roc_curve,
+         print.auc = TRUE,
+         xlim=c(1,0))
