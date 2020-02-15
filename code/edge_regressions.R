@@ -4,6 +4,8 @@
 # load packages
 library(igraph)
 library(stringr)
+library(dplyr)
+library(glue)
 
 # import arc list
 edge_list_joined <- read.csv(here::here('input', 'arcs_fall_2015.csv')) %>% 
@@ -46,7 +48,7 @@ data_dyad_steps %>%
   unite(dyad2, vertex_2, vertex_1, sep = '-', remove = FALSE) %>% 
   mutate(edge_test = case_when(dyad1 %in% edges_undir$identifier | dyad2 %in% edges_undir$identifier ~ TRUE,
                                TRUE ~ FALSE)) %>% 
-  summarise(sum(edge_test))
+  summarise(sum(edge_test)) # 4190
 
 
 # ==============================================================================
@@ -76,7 +78,7 @@ vec_not_in_final <- tibble(
   distinct()
 
 vec_not_in_final %>% 
-  mutate(in_edgelist = case_when(not_found %in% edge_list_joined$fitbitid_1 | not_found %in% edge_list_joined$fitbitid_2 ~ TRUE,
+  mutate(in_edgelist = case_when(not_found %in% edge_list_joined$participid_1 | not_found %in% edge_list_joined$participid_2 ~ TRUE,
                                  TRUE ~ FALSE))
 
 
@@ -90,7 +92,7 @@ aod::wald.test(b = coef(model_edge_firth), Sigma = vcov(model_edge_firth), Terms
 l <- cbind(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
            0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0)
 aod::wald.test(b = coef(model_edge_firth), Sigma = vcov(model_edge_firth), L = l)
-logistic_test <- glm(edge ~ assigned_cluster, data = data_final, family = 'binomial')
+logistic_test <- glm(edge_arc ~ assigned_cluster, data = data_final, family = 'binomial')
 
 
 # flic and flac are taken from 
@@ -152,4 +154,16 @@ output_flic <- tibble(
 # save to excel file
 write.xlsx(list(output_firth, output_flic),
            sheetName = c('firth', 'flic'),
-           file = here::here('output', 'tables_edge_reg.xlsx'))
+           file = here::here('output', glue('tables_edge_reg_{Sys.Date()}.xlsx')))
+
+# ROC (function in analysis_clusters.R) ========================================
+
+# previous function won't work here
+
+# get roc info
+roc_curve <- roc(model_edge_firth$y ~ model_edge_firth$predict)
+
+# plot figure
+plot.roc(roc_curve,
+         print.auc = TRUE,
+         xlim=c(1,0))
