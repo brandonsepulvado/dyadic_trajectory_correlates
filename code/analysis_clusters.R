@@ -2,6 +2,11 @@
 # relationship cluster membership and sociodemographic traits
 # ==============================================================================
 
+# load packages
+library(openxlsx)
+library(texreg)
+library(margins)
+
 # ==============================================================================
 # import and visualize clustering results
 
@@ -9,10 +14,12 @@
 
 # model with 21 clusters
 kshape_21 <- readRDS(here::here('output', 'kshape_21_20200208.rds'))
+# kshape_21_2 <- readRDS(file.path('/Users', 'brandonsepulvado', 'Downloads',
+#                                  'kshape_21_20200208.rds'))
 
 # visualize 21 clusters 
 plot(kshape_21, type = 'centroids') +
-  facet_wrap(~cl, scales = 'free', ncol = 4) +
+  facet_wrap(~cl, scales = 'free', ncol = 3) +
   labs(x = 'Day',
        y = 'Value (z-normalized)',
        title = NULL)
@@ -20,7 +27,7 @@ plot(kshape_21, type = 'centroids') +
 # get table with cluster name and size
 
 # prepare info
-cluster_sizes_21 <- kshape_24@clusinfo %>% 
+cluster_sizes_21 <- kshape_21@clusinfo %>% 
   tibble::rowid_to_column(var = 'cluster_number') %>% 
   select(-av_dist)
 
@@ -107,7 +114,7 @@ data_final <- data_final %>%
 # add cluster assignments
 data_final <- data_final %>% 
   mutate(assigned_cluster = as.factor(kshape_24@cluster),
-         assigned_cluster = relevel(assigned_cluster, ref = '6'))
+         assigned_cluster = relevel(assigned_cluster, ref = '11')) # 11 is largest
 
 
 
@@ -137,9 +144,6 @@ get_counts(yourelig)
 # ==============================================================================
 # estimate logistic models
 
-library(texreg)
-library(margins)
-
 # predicting same gender
 model_gender <- glm(as.numeric(gender_same) ~ assigned_cluster,
                     family = "binomial",
@@ -152,6 +156,7 @@ aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), L = l)
 model_race <- glm(as.numeric(race_same) ~ assigned_cluster,
                     family = "binomial",
                     data = data_final)
+
 
 # model for religion
 model_relig <- glm(as.numeric(relig_same) ~ assigned_cluster,
