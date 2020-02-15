@@ -111,7 +111,7 @@ data_final <- data_final %>%
 
 # add cluster assignments
 data_final <- data_final %>% 
-  mutate(assigned_cluster = as.factor(kshape_24@cluster),
+  mutate(assigned_cluster = as.factor(kshape_21@cluster),
          assigned_cluster = relevel(assigned_cluster, ref = '11')) # 11 is largest
 
 
@@ -167,7 +167,7 @@ aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), L = l)
 
 # save output
 htmlreg(list(model_gender, model_race, model_relig),
-        file = here::here('output', 'reg_table.doc'),
+        file = here::here('output', 'reg_table_2020-02-15.doc'),
         single.row = TRUE)
 
 # ROC for models ===============================================================
