@@ -88,7 +88,7 @@ model_edge_firth <- logistf::logistf(edge_arc ~ assigned_cluster, data = data_fi
 
 # get summary
 firth_summary <- summary(model_edge_firth)
-aod::wald.test(b = coef(model_edge_firth), Sigma = vcov(model_edge_firth), Terms = 2:24)
+aod::wald.test(b = coef(model_edge_firth), Sigma = vcov(model_edge_firth), Terms = 2:21)
 l <- cbind(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
            0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0)
 aod::wald.test(b = coef(model_edge_firth), Sigma = vcov(model_edge_firth), L = l)

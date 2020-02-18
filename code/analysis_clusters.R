@@ -146,21 +146,30 @@ get_counts(yourelig)
 model_gender <- glm(as.numeric(gender_same) ~ assigned_cluster,
                     family = "binomial",
                     data = data_final)
-l <- cbind(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-           0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0)
-aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), L = l)
+
+# wald chi2 test (term 4 is the relevant cluster : intercept plus three)
+aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), Terms = 4)
+
+# wald chi2 for cluster membership (all clusters)
+aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), Terms = 2:21)
 
 # model for race
 model_race <- glm(as.numeric(race_same) ~ assigned_cluster,
                     family = "binomial",
                     data = data_final)
 
+# wald chi2
+aod::wald.test(b = coef(model_race), Sigma = vcov(model_race), Terms = 2:21)
 
 # model for religion
 model_relig <- glm(as.numeric(relig_same) ~ assigned_cluster,
                   family = "binomial",
                   data = data_final)
 
+# overall chi2 for religion
+aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), Terms = 2:21)
+
+# test specific coefficients
 l <- cbind(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
            0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), L = l)
