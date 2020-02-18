@@ -2,6 +2,11 @@
 # relationship cluster membership and sociodemographic traits
 # ==============================================================================
 
+# load packages
+library(openxlsx)
+library(texreg)
+library(margins)
+
 # ==============================================================================
 # import and visualize clustering results
 
@@ -12,7 +17,7 @@ kshape_21 <- readRDS(here::here('output', 'kshape_21_20200208.rds'))
 
 # visualize 21 clusters 
 plot(kshape_21, type = 'centroids') +
-  facet_wrap(~cl, scales = 'free', ncol = 4) +
+  facet_wrap(~cl, scales = 'free', ncol = 3) +
   labs(x = 'Day',
        y = 'Value (z-normalized)',
        title = NULL)
@@ -20,7 +25,7 @@ plot(kshape_21, type = 'centroids') +
 # get table with cluster name and size
 
 # prepare info
-cluster_sizes_21 <- kshape_24@clusinfo %>% 
+cluster_sizes_21 <- kshape_21@clusinfo %>% 
   tibble::rowid_to_column(var = 'cluster_number') %>% 
   select(-av_dist)
 
@@ -106,8 +111,8 @@ data_final <- data_final %>%
 
 # add cluster assignments
 data_final <- data_final %>% 
-  mutate(assigned_cluster = as.factor(kshape_24@cluster),
-         assigned_cluster = relevel(assigned_cluster, ref = '6'))
+  mutate(assigned_cluster = as.factor(kshape_21@cluster),
+         assigned_cluster = relevel(assigned_cluster, ref = '11')) # 11 is largest
 
 
 
@@ -137,32 +142,63 @@ get_counts(yourelig)
 # ==============================================================================
 # estimate logistic models
 
-library(texreg)
-library(margins)
-
 # predicting same gender
 model_gender <- glm(as.numeric(gender_same) ~ assigned_cluster,
                     family = "binomial",
                     data = data_final)
-l <- cbind(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-           0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0)
-aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), L = l)
+
+# wald chi2 test (term 4 is the relevant cluster : intercept plus three)
+aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), Terms = 4)
+
+# wald chi2 for cluster membership (all clusters)
+aod::wald.test(b = coef(model_gender), Sigma = vcov(model_gender), Terms = 2:21)
 
 # model for race
 model_race <- glm(as.numeric(race_same) ~ assigned_cluster,
                     family = "binomial",
                     data = data_final)
 
+# wald chi2
+aod::wald.test(b = coef(model_race), Sigma = vcov(model_race), Terms = 2:21)
+
 # model for religion
 model_relig <- glm(as.numeric(relig_same) ~ assigned_cluster,
                   family = "binomial",
                   data = data_final)
 
+# overall chi2 for religion
+aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), Terms = 2:21)
+
+# test specific coefficients
 l <- cbind(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
            0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 aod::wald.test(b = coef(model_relig), Sigma = vcov(model_relig), L = l)
 
 # save output
 htmlreg(list(model_gender, model_race, model_relig),
-        file = here::here('output', 'reg_table.doc'),
+        file = here::here('output', 'reg_table_2020-02-15.doc'),
         single.row = TRUE)
+
+# ROC for models ===============================================================
+
+get_roc_plot <- function(log_reg){
+  # get predictions
+  predictions <- predict(log_reg, type = c('response'))
+  # get roc info
+  roc_curve <- roc(log_reg$y ~ predictions)
+  # plot the results
+  roc_plot <- plot.roc(roc_curve,
+                       print.auc = TRUE,
+                       xlim = c(1,0))
+  # return the plot
+  return(roc_plot)
+}
+
+# get curve for gender model
+get_roc_plot(model_gender) # .52
+
+# get curve for race model
+get_roc_plot(model_race) # .56
+
+# get curve for religion model
+get_roc_plot(model_relig) # .56

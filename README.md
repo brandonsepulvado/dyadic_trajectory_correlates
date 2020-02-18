@@ -12,7 +12,7 @@ Matthew J. Chandler, Princeton University
 
 
 ## NetHealth Study
-This work was funded by the National Institutes of Health (NIH) grant 1R01HL117757.
+This work was funded by the National Institutes of Health (NIH) grant 1R01HL117757 and supported in part by the Notre Dame Center for Research Computing (ND CRC). We specifically acknowledge the assistance of [Dodi Heryadi](https://crc.nd.edu/about/people/dodi-heryadi/).
 
 ## Workflow
 
