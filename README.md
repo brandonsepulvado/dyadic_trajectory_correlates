@@ -18,11 +18,15 @@ This work was funded by the National Institutes of Health (NIH) grant 1R01HL1177
 
 The paper's analysis occur across several files; this section describes the workflow. While certain components of the data manipulation and analysis may be conducted on a personal computer, the actual implementation of the k-shape algorithm should be done on a high performance cluster (or in the cloud).  
 
+The scripts are written with a particular organization of the project directory in mind. There should be a main directory that includes the .Rproj file, and, within this directory, there should be three subdirectories: input, output, and code. The input data (see below) should be downloaded within the input folder; the code should be in the code folder; the output from these files will be saved to the output folder. Note that the scripts to run in a high performance environment are an exception to this structure. They should be executed, and the files they output should be saved in the output subdirectory. 
+
 ### Data Location
 
-The data may be found on Harvard's Dataverse at this [link](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/BQIH2H).
+The data may be found on Harvard's Dataverse at this [link](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/BQIH2H). These files should be included in the input subdirectory.
 
 ### Data Preparation 
+
+The files in this section must be executed before those in the following sections will run. 
 
 **data_import_clean.R** is the first file that should be run. It imports daily observations for each participant in the study and then calls **create_dyad_trends.R**, which creates daily observations for each dyad. In this latter information is included multiple variables: *vertex_1*, *vertex_2*, *date*, *steps_v1* (steps on that date for vertex one), *steps_v2* (steps on that date for vertex two), and *abs_diff* (the absolute difference between steps for vertices one and two).  
 
@@ -30,7 +34,7 @@ The data may be found on Harvard's Dataverse at this [link](https://dataverse.ha
 
 ### Data Descriptives
 
-**descriptives.R** provides descriptives on dyadic observations, including NAs, over the course of the Fall 2015 semester.
+**descriptives.R** provides descriptives on dyadic observations, including NAs, over the course of the Fall 2015 semester. None of the following scripts depends upon this file. 
 
 ### Analyses
 
