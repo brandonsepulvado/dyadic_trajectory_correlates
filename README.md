@@ -20,7 +20,7 @@ The paper's analysis occur across several files; this section describes the work
 
 ### Data Location
 
-The data may be found on Harvard's Dataverse at this [link]().
+The data may be found on Harvard's Dataverse at this [link](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/BQIH2H).
 
 ### Data Preparation 
 
