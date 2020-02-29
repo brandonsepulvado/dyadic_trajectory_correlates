@@ -20,3 +20,6 @@ input/
 # file to create public data from original data
 *create_public_data.R
 *create_new_arc_list.R
+
+# ignore pdf files
+*.pdf
