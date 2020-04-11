@@ -2,6 +2,12 @@
 # visualize the results of the cluster validity indices
 # ==============================================================================
 
+# load packages
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+
 # run after cvi_2_25.R
 # note that it stopped running after sapply()
 
@@ -36,3 +42,42 @@ eval_k_mean5 %>%
   labs(x = 'Number of Clusters',
        y = 'Value',
        color = 'Metric')
+
+# greyscale version for publication
+
+# get panel of cvis to maximize
+plot_max <- eval_k_mean5 %>%
+  filter(goal == 'maximize') %>% 
+  group_by(index) %>% 
+  mutate(value = (value - min(value)) / (max(value) - min(value))) %>%
+  ungroup() %>% 
+  ggplot(aes(x = as.numeric(number_k), y = value, linetype = index, shape = index)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = 'Number of Clusters',
+       y = 'Value',
+       linetype = 'Metric',
+       shape = 'Metric',
+       title='A: Maximize')
+
+# get panel for cvis to minimize
+plot_min <- eval_k_mean5 %>%
+  filter(goal == 'minimize') %>% 
+  group_by(index) %>% 
+  mutate(value = (value - min(value)) / (max(value) - min(value))) %>%
+  ungroup() %>% 
+  ggplot(aes(x = as.numeric(number_k), y = value, linetype = index, shape = index)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = 'Number of Clusters',
+       y = 'Value',
+       linetype = 'Metric',
+       shape = 'Metric',
+       title = 'B: Minimize')
+
+# combine (saved : 800 x 600)
+plot_max + 
+  plot_min +
+plot_layout(ncol = 1)
